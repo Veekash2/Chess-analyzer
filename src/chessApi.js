@@ -20,6 +20,37 @@ async function getJson(url, signal, attempt = 0) {
   return res.json()
 }
 
+// ---- month cache: finished months never change, so keep them in IndexedDB and only
+// re-download the current and previous month. Repeat visits load in a second or two.
+const DB = 'smc-archives', STORE = 'months'
+function openDb() {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(DB, 1)
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE)
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => resolve(null)
+    } catch { resolve(null) }
+  })
+}
+function idb(db, mode, fn) {
+  return new Promise((resolve) => {
+    if (!db) return resolve(null)
+    try {
+      const tx = db.transaction(STORE, mode)
+      const req = fn(tx.objectStore(STORE))
+      tx.oncomplete = () => resolve(req?.result ?? null)
+      tx.onerror = () => resolve(null)
+    } catch { resolve(null) }
+  })
+}
+function isFinished(archiveUrl) {
+  const [, y, m] = archiveUrl.match(/(\d{4})\/(\d{2})$/) || []
+  if (!y) return false
+  const now = new Date()
+  return +y * 12 + +m < now.getFullYear() * 12 + now.getMonth() + 1 - 1 // older than last month
+}
+
 export async function fetchProfile(username, signal) {
   const u = encodeURIComponent(username.trim().toLowerCase())
   const [profile, stats] = await Promise.all([
@@ -46,8 +77,14 @@ export async function fetchAllGames(username, { signal, onProgress, months } = {
     })
   }
   const games = []
+  const db = await openDb()
   for (let i = 0; i < archives.length; i++) {
-    const { games: month } = await getJson(archives[i], signal)
+    const key = archives[i].toLowerCase()
+    let month = isFinished(key) ? await idb(db, 'readonly', (st) => st.get(key)) : null
+    if (!month) {
+      month = (await getJson(archives[i], signal)).games
+      if (isFinished(key)) idb(db, 'readwrite', (st) => st.put(month, key))
+    }
     games.push(...month)
     onProgress?.({ done: i + 1, total: archives.length, games: games.length, month: archives[i].slice(-7) })
   }
