@@ -315,7 +315,7 @@ export default function App() {
       {status === 'done' && rows.length === 0 && <section className="card"><p>This player has no public games yet.</p></section>}
 
       {(hasData || ['review', 'compare', 'puzzles', 'play', 'openings'].includes(page) || puzzles.puzzles.length > 0) && (
-        <nav className="page-tabs" role="tablist">
+        <nav className="page-tabs" role="tablist" ref={(el) => { const a = el?.querySelector('.page-tab.active'); if (a) el.scrollLeft += a.getBoundingClientRect().left - el.getBoundingClientRect().left - (el.clientWidth - a.offsetWidth) / 2 }}>
           {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review'], ['puzzles', 'Puzzles'], ['play', 'Play bots'], ['openings', 'Openings'], ['compare', 'Compare']].filter(([k]) => hasData || ['review', 'compare', 'puzzles', 'play', 'openings'].includes(k)).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={page === k} className={page === k ? 'page-tab active' : 'page-tab'} onClick={() => setPage(k)}>
               {label}

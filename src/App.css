@@ -785,3 +785,8 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .start-banner { padding: 8px 10px; border-radius: 8px; background: color-mix(in oklab, var(--accent) 14%, transparent); margin: 6px 0 10px; }
 .opening-trainer .solver-actions.end { grid-template-columns: 1fr 1fr; }
 .opening-trainer .solver-actions.end .big-green { grid-column: 1 / -1; }
+/* phone fixes: tab strip scrolls on its own instead of widening the page; title clears the header buttons */
+.page-tabs { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.page-tabs::-webkit-scrollbar { display: none; }
+.page-tab { flex: 0 0 auto; white-space: nowrap; }
+@media (max-width: 640px) { .hero { padding-top: 54px; } }
