@@ -5,6 +5,89 @@ import { IconArrowRight, IconBulb, IconClose, IconFirst, IconFlip, IconLast, Ico
 import { CLASSES, COUNT_ORDER, fmtEval, parsePgnText, reviewGame, winPct } from './reviewCore'
 import { getEngine, getOpeningBook } from './engine'
 import { useWidth } from '../insights/Visuals'
+import { playerReport } from './coachReport'
+
+/* ------------------------------------------------------------------ per-player game report */
+function GameReport({ result, players, headers, onSeek }) {
+  const [side, setSide] = useState(players.b.you ? 'b' : 'w')
+  const report = useMemo(() => playerReport(result, side, { headers }), [result, side, headers])
+  const p = players[side]
+  const est = report.estimate
+  const actual = parseInt(p.rating, 10)
+  return (
+    <div className="game-report">
+      <h4>Game report</h4>
+      <div className="tabs chips small-chips report-tabs" role="tablist" aria-label="Player">
+        {['w', 'b'].map((c) => (
+          <button key={c} role="tab" aria-selected={side === c} className={side === c ? 'tab active' : 'tab'} onClick={() => setSide(c)}>
+            <i className={`piece ${c === 'w' ? 'white' : 'black'}`} /> {players[c].name}{players[c].you ? ' (you)' : ''}
+          </button>
+        ))}
+      </div>
+
+      {est && (
+        <div className="est-card">
+          <div>
+            <span className="muted small">Played like</span>
+            <strong>~{est.rating}</strong>
+            <span className="muted small">likely {est.low}-{est.high}</span>
+          </div>
+          {actual > 0 && (
+            <div>
+              <span className="muted small">Actual rating</span>
+              <strong>{actual}</strong>
+              <span className={`small ${actual < est.low ? 'up' : actual > est.high ? 'down' : 'muted'}`}>
+                {actual < est.low ? 'played well above their rating' : actual > est.high ? 'played well below their rating' : 'within the range for their rating'}
+              </span>
+            </div>
+          )}
+          <p className="muted small est-note">Rough estimate from average centipawn loss ({Math.round(report.acpl)}) on non-book moves, calibrated on real rated games. A single game can be off by about ±550, so look at the trend across many games rather than one result.</p>
+        </div>
+      )}
+
+      <h5>Weaknesses in this game</h5>
+      {report.weaknesses.length ? (
+        <ul className="rep-list weak">
+          {report.weaknesses.map((w) => (
+            <li key={w.key}>
+              <div><strong>{w.title}</strong>{w.detail && <span className="muted small"> - {w.detail}</span>}</div>
+              {w.plies?.length > 0 && <button className="link-btn small" onClick={() => onSeek(w.plies[0])}>Show move</button>}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="muted small">No clear weaknesses - a clean game.</p>}
+
+      {report.strengths.length > 0 && (
+        <>
+          <h5>What went well</h5>
+          <ul className="rep-list good">
+            {report.strengths.map((st) => <li key={st.title}><div><strong>{st.title}</strong><span className="muted small"> - {st.detail}</span></div></li>)}
+          </ul>
+        </>
+      )}
+
+      {report.learn.length > 0 && (
+        <>
+          <h5>What to learn next</h5>
+          <div className="learn-cards">
+            {report.learn.map((l) => (
+              <div key={l.title} className="learn-card">
+                <strong>{l.title}</strong>
+                <p className="small">{l.why}</p>
+                {l.links.length > 0 && (
+                  <div className="learn-links">
+                    {l.links.map((k) => <a key={k.url} href={k.url} target="_blank" rel="noreferrer">{k.label} ↗</a>)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="muted small">Practice links open free puzzle sets on Lichess.</p>
+        </>
+      )}
+    </div>
+  )
+}
 
 const DEPTHS = [[12, 'Fast'], [16, 'Standard'], [20, 'Deep']]
 const VERDICT = {
@@ -237,7 +320,7 @@ function PlayerBar({ p, extra }) {
 }
 
 /* ------------------------------------------------------------------ side panel */
-function Summary({ result, players, onStart, onSeek, retryCount, onRetryAll }) {
+function Summary({ result, players, headers, onStart, onSeek, retryCount, onRetryAll }) {
   const { w, b, keyMoments } = result.summary
   const res = players.result
   return (
@@ -290,6 +373,7 @@ function Summary({ result, players, onStart, onSeek, retryCount, onRetryAll }) {
         </tbody>
       </table>
       <p className="muted small phase-note">{phaseNote(result.moves)}</p>
+      <GameReport result={result} players={players} headers={headers} onSeek={onSeek} />
       {keyMoments.length > 0 && (
         <>
           <h4>Key moments</h4>
@@ -595,7 +679,7 @@ export default function ReviewView({ initialPgn, username, rows }) {
                 onHint={retryHint} onSolution={retrySolution} onNextRetry={retryNext}
                 onExit={() => { setRetry(null) }} />
             ) : ply === 0 || !mv ? (
-              <Summary result={result} players={players} onStart={() => seek(1)} onSeek={seek}
+              <Summary result={result} players={players} headers={game.headers} onStart={() => seek(1)} onSeek={seek}
                 retryCount={retryList.length} onRetryAll={() => startRetry(retryList[0], retryList.slice(1))} />
             ) : (
               <>

@@ -2,6 +2,7 @@
 // Engine-agnostic: pass an `evaluate(fen, depth)` that resolves to
 //   { lines: [{ cp?, mate?, pv: [uci...] }, ...] }  (scores from the side to move, best first)
 import { Chess } from 'chess.js'
+import { parseMovetext } from '../insights/analyzeGame.js'
 
 const VAL = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 }
 const NAMES = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' }
@@ -205,6 +206,7 @@ export function phaseOf(fen, ply, book) {
 
 export function classifyGame(game, fens, evals, openings = globalThis.__openingBook || {}) {
   openings = openings || {}
+  const { clocks } = game.pgn ? parseMovetext(game.pgn) : { clocks: [] }
   const moves = []
   let inBook = true
   let openingName = ''
@@ -262,11 +264,13 @@ export function classifyGame(game, fens, evals, openings = globalThis.__openingB
     }
 
     const accuracy = cls === 'book' || cls === 'forced' ? 100 : moveAccuracy(wBest - wAfter)
+    const cpOf = (sc) => (sc.mate != null ? (sc.mate > 0 ? 1000 : sc.mate < 0 ? -1000 : 0) : Math.max(-1000, Math.min(1000, sc.cp)))
+    const cpLoss = cls === 'book' || cls === 'forced' ? 0 : Math.max(0, cpOf(sBest) - cpOf(sAfter))
     moves.push({
       ply: i + 1, san: m.san, color, from: m.from, to: m.to, uci, cls,
       fenBefore: m.before, fenAfter: m.after,
       evalAfter: after.lines[0], evalBefore: best,
-      wBest, wAfter, loss, accuracy,
+      wBest, wAfter, loss, accuracy, cpLoss, sBest, sAfter, clock: clocks[i] ?? null,
       bestSan: bestUci ? pvToSan(m.before, [bestUci], 1)[0] : null,
       bestUci, bestLine: bestUci ? pvToSan(m.before, best.pv) : [],
       replyLine: after.lines[0]?.pv ? pvToSan(m.after, after.lines[0].pv, 6) : [],
@@ -299,7 +303,9 @@ function summarize(moves) {
       const pm = ms.filter((m) => m.phase === p)
       phases[p] = pm.length ? gameAccuracy(pm) : null
     }
-    return { accuracy: gameAccuracy(ms), counts, phases, moves: ms.length }
+    const scored = ms.filter((m) => m.cls !== 'book' && m.cls !== 'forced')
+    const acpl = scored.length ? scored.reduce((a, m) => a + m.cpLoss, 0) / scored.length : 0
+    return { accuracy: gameAccuracy(ms), counts, phases, moves: ms.length, acpl }
   }
   const keyMoments = moves.filter((m) => ['brilliant', 'great', 'mistake', 'miss', 'blunder'].includes(m.cls))
   return { w: side('w'), b: side('b'), keyMoments }
@@ -307,7 +313,7 @@ function summarize(moves) {
 
 /* ---------------------------------------------------------------- coach text */
 
-function hangs(mv) {
+export function hangs(mv) {
   // What does the opponent's best reply take?
   if (!mv.replyLine.length) return null
   const c = new Chess(mv.fenAfter)

@@ -571,3 +571,23 @@ th .p-chip, .h2h .p-chip, .fc-row .p-chip { padding-right: 10px; }
   .cmp-table td, .cmp-table th { padding: 6px 8px; }
   .rate-now { font-size: 1.05rem; }
 }
+
+/* ---------- game report ---------- */
+.game-report { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.game-report h4 { margin: 0; }
+.game-report h5 { margin: 8px 0 0; font: 700 .9rem var(--font-head); color: var(--ink); }
+.report-tabs .tab { display: inline-flex; align-items: center; gap: 6px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.est-card { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border: 1px solid color-mix(in oklab, var(--gold) 55%, transparent); border-radius: 10px; padding: 10px 12px; background: color-mix(in oklab, var(--gold) 8%, transparent); }
+.est-card > div { display: flex; flex-direction: column; }
+.est-card strong { font: 700 1.6rem var(--font-head); line-height: 1.15; color: var(--maroon); }
+@media (prefers-color-scheme: dark) { .est-card strong { color: var(--gold-soft); } }
+.est-card .up { color: var(--peacock); font-weight: 700; } .est-card .down { color: var(--loss); font-weight: 700; }
+.est-note { grid-column: 1 / -1; margin: 0; }
+.rep-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rep-list li { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 6px 8px 6px 12px; border-radius: 8px; border-left: 3px solid; background: color-mix(in oklab, var(--line) 30%, transparent); font-size: .88rem; }
+.rep-list.weak li { border-color: var(--loss); } .rep-list.good li { border-color: var(--peacock); }
+.rep-list .link-btn { white-space: nowrap; }
+.learn-cards { display: grid; gap: 8px; }
+.learn-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.learn-card p { margin: 4px 0 6px; color: var(--ink2); }
+.learn-links { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: .84rem; font-weight: 600; }
