@@ -33,9 +33,18 @@ export async function fetchProfile(username, signal) {
  * Downloads every monthly archive one after another (Chess.com asks API
  * clients to make requests serially) and reports progress after each month.
  */
-export async function fetchAllGames(username, { signal, onProgress }) {
+export async function fetchAllGames(username, { signal, onProgress, months } = {}) {
   const u = encodeURIComponent(username.trim().toLowerCase())
-  const { archives } = await getJson(`${BASE}/${u}/games/archives`, signal)
+  let { archives } = await getJson(`${BASE}/${u}/games/archives`, signal)
+  if (months) {
+    // only archives from the last N calendar months (archive URLs end in /YYYY/MM)
+    const now = new Date()
+    const cutoff = now.getFullYear() * 12 + now.getMonth() + 1 - months
+    archives = archives.filter((a) => {
+      const [, y, m] = a.match(/(\d{4})\/(\d{2})$/) || []
+      return y && +y * 12 + +m > cutoff
+    })
+  }
   const games = []
   for (let i = 0; i < archives.length; i++) {
     const { games: month } = await getJson(archives[i], signal)

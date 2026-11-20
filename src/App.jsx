@@ -3,6 +3,7 @@ import { fetchAllGames, fetchProfile, toRow } from './chessApi'
 import InsightsView from './insights/InsightsView'
 import ReviewView from './review/ReviewView'
 import Mandala from './Mandala'
+import CompareView from './compare/CompareView'
 import { addPreGameRatings } from './insights/aggregate'
 
 const LIMITS = [['all', 'All'], [100, '100'], [200, '200'], [500, '500'], [1000, '1,000'], [2000, '2,000']]
@@ -105,6 +106,12 @@ export default function App() {
   }, [rows])
 
   const hasData = status === 'done' && rows.length > 0
+  // people you play most often - offered as one-click "friends" on the Compare page
+  const topOpponents = useMemo(() => {
+    const c = new Map()
+    for (const r of rows) c.set(r.opponent, (c.get(r.opponent) || 0) + 1)
+    return [...c.entries()].filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([n]) => n)
+  }, [rows])
   // Which games are analysed: time control first, then the most recent N of those
   const [limit, setLimit] = useState('all')
   const [customLimit, setCustomLimit] = useState('')
@@ -229,9 +236,10 @@ export default function App() {
           )}
         </form>
         {status === 'error' && <p className="error">{error}</p>}
-        {page !== 'review' && (
-          <button className="link-btn hero-alt" onClick={() => openReview(null)}>Or review a single game from a PGN file →</button>
-        )}
+        <div className="hero-links">
+          {page !== 'review' && <button className="link-btn hero-alt" onClick={() => openReview(null)}>Review a game from a PGN file →</button>}
+          {page !== 'compare' && <button className="link-btn hero-alt" onClick={() => setPage('compare')}>Compare friends →</button>}
+        </div>
       </header>
 
       {player && (
@@ -272,9 +280,9 @@ export default function App() {
 
       {status === 'done' && rows.length === 0 && <section className="card"><p>This player has no public games yet.</p></section>}
 
-      {(hasData || page === 'review') && (
+      {(hasData || page === 'review' || page === 'compare') && (
         <nav className="page-tabs" role="tablist">
-          {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review']].filter(([k]) => hasData || k === 'review').map(([k, label]) => (
+          {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review'], ['compare', 'Compare']].filter(([k]) => hasData || k === 'review' || k === 'compare').map(([k, label]) => (
             <button key={k} role="tab" aria-selected={page === k} className={page === k ? 'page-tab active' : 'page-tab'} onClick={() => setPage(k)}>
               {label}
               {k === 'insights' && !records && <span className="badge">{insProgress ? `${Math.round((100 * insProgress.done) / insProgress.total)}%` : '...'}</span>}
@@ -285,7 +293,9 @@ export default function App() {
 
       {page === 'review' && <ReviewView key={reviewKey} initialPgn={reviewPgn} username={fetchedFor} rows={rows.filter((r) => r.pgn && r.rules === 'chess')} />}
 
-      {hasData && page !== 'review' && (
+      {page === 'compare' && <CompareView me={fetchedFor || null} suggestions={topOpponents} />}
+
+      {hasData && page !== 'review' && page !== 'compare' && (
         <>
           <div className="toolbar">
             <div className="tabs" role="tablist">

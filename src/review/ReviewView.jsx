@@ -25,13 +25,23 @@ export function ClassIcon({ cls, size = 18 }) {
   )
 }
 
+const MIN_PHASE_MOVES = 2
+const phaseMoves = (moves, phase, color) => moves.filter((m) => m.phase === phase && m.color === color).length
+/** A phase is graded only when BOTH players made at least 2 moves in it - fair to compare. */
+const gradable = (moves, phase) => phaseMoves(moves, phase, 'w') >= MIN_PHASE_MOVES && phaseMoves(moves, phase, 'b') >= MIN_PHASE_MOVES
+
 /** One line explaining where the phases began, or why a phase has no grade. */
 function phaseNote(moves) {
   const moveNo = (m) => Math.ceil(m.ply / 2)
   const firstEnd = moves.find((m) => m.phase === 'endgame')
   const firstMid = moves.find((m) => m.phase === 'middlegame')
   const lastMove = moves.at(-1)
-  if (firstEnd) return `Endgame began at move ${moveNo(firstEnd)}${firstMid ? `, middlegame at move ${moveNo(firstMid)}` : ''}.`
+  const mid = firstMid ? `Middlegame began at move ${moveNo(firstMid)}. ` : ''
+  if (firstEnd && !gradable(moves, 'endgame')) {
+    const n = moves.filter((m) => m.phase === 'endgame').length
+    return `${mid}The endgame began at move ${moveNo(firstEnd)}, but the game ended ${n === 1 ? 'one move' : `${n} moves`} later - too few to grade either player fairly.`
+  }
+  if (firstEnd) return `${mid}Endgame began at move ${moveNo(firstEnd)}.`
   return `No endgame: the game finished at move ${moveNo(lastMove)} with plenty of pieces still on the board. (An endgame starts when 6 or fewer pieces are left, not counting kings and pawns.)`
 }
 
@@ -266,8 +276,10 @@ function Summary({ result, players, onStart, onSeek, retryCount, onRetryAll }) {
           {['opening', 'middlegame', 'endgame'].map((p) => (
             <tr key={p}>
               <td>{p[0].toUpperCase() + p.slice(1)}</td>
-              {w.phases[p] == null && b.phases[p] == null ? (
+              {phaseMoves(result.moves, p, 'w') + phaseMoves(result.moves, p, 'b') === 0 ? (
                 <td colSpan={2} className="center muted small">Not reached</td>
+              ) : !gradable(result.moves, p) ? (
+                <td colSpan={2} className="center muted small">Too short to grade</td>
               ) : [w, b].map((s, i) => (
                 <td key={i} className="center">
                   {s.phases[p] != null ? <span className="phase-cell"><ClassIcon cls={phaseClass(s.phases[p])} size={20} /><span className="muted small">{s.phases[p].toFixed(0)}</span></span> : <span className="muted">-</span>}
