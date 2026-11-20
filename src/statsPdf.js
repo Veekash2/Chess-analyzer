@@ -46,7 +46,7 @@ export function downloadStatsPdf(data) {
 
   // Title
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...ACCENT)
-  doc.text('CHESS.COM STATISTICS', M, y)
+  doc.text('SINGH MASTER CHESS  |  STATISTICS', M, y)
   y += 8
   doc.setFontSize(22); doc.setTextColor(...INK)
   doc.text(safe(data.username), M, y)
@@ -163,7 +163,7 @@ export function downloadStatsPdf(data) {
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i)
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(138, 137, 132)
-    doc.text(safe(`${data.username} - Chess.com statistics - ${data.filterLabel}`), M, 290)
+    doc.text(safe(`${data.username} - Singh Master Chess - ${data.filterLabel}`), M, 290)
     doc.text(`Page ${i} of ${pages}`, W - M, 290, { align: 'right' })
   }
 

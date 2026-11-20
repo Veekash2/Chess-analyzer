@@ -1,14 +1,30 @@
+/* Singh Master Chess - Indian-inspired theme
+   Light: ivory parchment, deep maroon ink, saffron accent, gold ornament.
+   Dark: maroon-plum night, warm ivory text, bright saffron and gold. */
 :root {
-  --bg: #f5f5f2; --surface: #ffffff; --ink: #0b0b0b; --ink2: #52514e; --line: #e4e3df;
-  --accent: #5d8a3a; --win: #2a78d6; --draw: #b9b8b2; --loss: #eb6834;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --bg: #fbf3e4; --surface: #fffaf1; --ink: #2b1418; --ink2: #6e5149; --line: #ecdcbf;
+  --accent: #c2410c; --accent-2: #e8771e; --accent-ink: #ffffff;
+  --maroon: #7a1f3d; --maroon-2: #5a1530; --gold: #c99a3e; --gold-soft: #e8c879; --peacock: #0f6e6e;
+  --win: #2a78d6; --draw: #b9b8b2; --loss: #eb6834;
+  --font-body: 'Mukta', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-head: 'Eczar', Georgia, serif;
+  --font-brand: 'Yatra One', 'Eczar', Georgia, serif;
+  font-family: var(--font-body);
   line-height: 1.5; color: var(--ink); background: var(--bg); color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121211; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --line: #2e2e2c;
-    --accent: #6f9e48; --win: #3987e5; --draw: #6b6a66; --loss: #d95926; color-scheme: dark;
+    --bg: #170c11; --surface: #22131a; --ink: #f7ebd8; --ink2: #d3bea4; --line: #3e2830;
+    --accent: #f08a32; --accent-2: #f5a54a; --accent-ink: #2b1418;
+    --maroon: #6e1a36; --maroon-2: #4a1026; --gold: #d9ad55; --gold-soft: #e8c879; --peacock: #2aa3a0;
+    --win: #3987e5; --draw: #6b6a66; --loss: #d95926; color-scheme: dark;
   }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  /* faint jaali (carved lattice) pattern */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cg fill='none' stroke='%23c99a3e' stroke-opacity='0.13' stroke-width='1'%3E%3Cpath d='M24 4 L44 24 L24 44 L4 24 Z'/%3E%3Ccircle cx='24' cy='24' r='7'/%3E%3Ccircle cx='0' cy='0' r='7'/%3E%3Ccircle cx='48' cy='0' r='7'/%3E%3Ccircle cx='0' cy='48' r='7'/%3E%3Ccircle cx='48' cy='48' r='7'/%3E%3C/g%3E%3C/svg%3E");
+}
+h1, h2, h3, h4 { font-family: var(--font-head); }

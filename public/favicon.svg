@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#7a1f3d"/>
+  <g fill="none" stroke="#e8b94f" stroke-width="2.2" opacity=".55">
+    <circle cx="32" cy="32" r="25"/>
+  </g>
+  <g fill="#e8b94f">
+    <!-- king: cross, crown, body, base -->
+    <rect x="30.2" y="8" width="3.6" height="10" rx="1"/>
+    <rect x="26.5" y="11.2" width="11" height="3.4" rx="1"/>
+    <path d="M20 26c0-5 5.4-8 12-8s12 3 12 8c0 4-2.6 6.5-4.3 9.5L41 44H23l1.3-8.5C22.6 32.5 20 30 20 26z"/>
+    <rect x="18" y="46" width="28" height="5" rx="2"/>
+    <rect x="16" y="52.5" width="32" height="4.5" rx="2"/>
+  </g>
+</svg>

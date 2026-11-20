@@ -1,4 +1,4 @@
-# Chess-analyzer
+# Singh Master Chess
 
 A React web app that pulls every public game for a Chess.com username and turns it into stats, insights and engine-powered game reviews. Everything runs in the browser.
 

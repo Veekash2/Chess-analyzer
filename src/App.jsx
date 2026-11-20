@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchAllGames, fetchProfile, toRow } from './chessApi'
 import InsightsView from './insights/InsightsView'
 import ReviewView from './review/ReviewView'
+import Mandala from './Mandala'
 import { addPreGameRatings } from './insights/aggregate'
 
 const LIMITS = [['all', 'All'], [100, '100'], [200, '200'], [500, '500'], [1000, '1,000'], [2000, '2,000']]
@@ -203,8 +204,15 @@ export default function App() {
   return (
     <div className="page">
       <header className="hero">
-        <h1>Chess.com game downloader</h1>
-        <p>Type a Chess.com username to pull every public game they have played, see a summary, and download it all as PGN.</p>
+        <Mandala className="hero-mandala" size={260} />
+        <div className="hero-brand">
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="hero-logo" width="52" height="52" />
+          <div>
+            <h1>Singh Master Chess</h1>
+            <p className="hero-tag">Chess was born in India as chaturanga. Study your games like a master.</p>
+          </div>
+        </div>
+        <p className="hero-sub">Enter a Chess.com username to load every public game, see insights, review games with Stockfish and download them as PGN.</p>
         <form onSubmit={load} className="search">
           <input
             value={username}
@@ -453,7 +461,10 @@ export default function App() {
         </>
       )}
 
-      <footer className="muted small">Data comes live from the public Chess.com API (api.chess.com). Nothing is stored or sent anywhere else.</footer>
+      <footer className="site-footer">
+        <div className="toran-line" aria-hidden="true" />
+        <p><strong>Singh Master Chess</strong> · Game data comes live from the public Chess.com API. Analysis runs in your browser; nothing is stored or sent anywhere else.</p>
+      </footer>
     </div>
   )
 }
