@@ -1,39 +1,87 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
-import { BOTS, chooseBotMove, getBeaten, markBeaten, materialFor, pick } from './bots'
+import { BOTS, LEVELS, chooseBotMove, getBeaten, markBeaten, materialFor, pick } from './bots'
 import { getBotEngine } from '../review/engine'
+import Portrait from './Portrait'
 import { useWidth } from '../insights/Visuals'
 import { IconBulb, IconFlip, IconRetry, IconStar } from '../review/icons'
 
 const sideName = (c) => (c === 'w' ? 'White' : 'Black')
 
+// Time controls like Chess.com: minutes + increment (seconds added after every move).
+export const TIME_CONTROLS = [
+  { group: 'Bullet', icon: '⚡', items: [[1, 0], [1, 1], [2, 1]] },
+  { group: 'Blitz', icon: '🔥', items: [[3, 0], [3, 2], [5, 0]] },
+  { group: 'Rapid', icon: '⏱', items: [[10, 0], [15, 10], [30, 0]] },
+]
+const tcLabel = (tc) => (tc ? (tc[1] ? `${tc[0]} | ${tc[1]}` : `${tc[0]} min`) : 'No clock')
+const TC_KEY = 'smc-bot-tc'
+function savedTc() {
+  try { const v = JSON.parse(localStorage.getItem(TC_KEY) || 'null'); return v === null || Array.isArray(v) ? v : null } catch { return null }
+}
+
+/** 4:05, 0:42 - and tenths (0:08.3) once under 20 seconds, like Chess.com. */
+export function fmtClock(ms) {
+  const t = Math.max(0, ms)
+  if (t < 20000) return `0:${String(Math.floor(t / 1000)).padStart(2, '0')}.${Math.floor((t % 1000) / 100)}`
+  const s = Math.ceil(t / 1000)
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`
+}
+const pgnClock = (ms) => {
+  const t = Math.max(0, ms) / 1000
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60
+  return `${h}:${String(m).padStart(2, '0')}:${s.toFixed(1).padStart(4, '0')}`
+}
+
+/** Can this side still checkmate? (lone king, or king + one minor piece, cannot) */
+function canMate(g, color) {
+  const mine = g.board().flat().filter((p) => p && p.color === color && p.type !== 'k')
+  return !(mine.length === 0 || (mine.length === 1 && 'nb'.includes(mine[0].type)))
+}
+
+function Clock({ ms, active, low }) {
+  return <span className={`clock ${active ? 'on' : ''} ${low ? 'low' : ''}`} role="timer" aria-label={`${fmtClock(ms)} left`}>{fmtClock(ms)}</span>
+}
+
 function BotAvatar({ bot, size = 48 }) {
-  return <span className="bot-avatar" style={{ '--bc': bot.color, width: size, height: size, fontSize: size * 0.58 }} aria-hidden="true">{bot.glyph}</span>
+  return <Portrait look={bot.look} bg={bot.color} size={size} title={`${bot.name} portrait`} />
 }
 
 /* ------------------------------------------------------------------ choose a bot */
 function BotPicker({ onStart }) {
-  const [botId, setBotId] = useState(BOTS[2].id)
+  const [botId, setBotId] = useState(() => { try { return localStorage.getItem('smc-bot-last') || 'haathi' } catch { return 'haathi' } })
   const [color, setColor] = useState('w')
   const [assist, setAssist] = useState(true)
+  const [tc, setTc] = useState(savedTc)
+  const chooseTc = (v) => { setTc(v); try { localStorage.setItem(TC_KEY, JSON.stringify(v)) } catch { /* ignore */ } }
   const beaten = getBeaten()
-  const bot = BOTS.find((b) => b.id === botId)
+  const bot = BOTS.find((b) => b.id === botId) || BOTS[5]
+  const choose = (id) => { setBotId(id); try { localStorage.setItem('smc-bot-last', id) } catch { /* ignore */ } }
   return (
     <div className="bot-picker">
       <section className="card">
         <h3>Play a bot</h3>
         <p className="muted small">Pick an opponent. Each bot is Stockfish running in your browser, tuned to play like a person at that level - with its own style and a few things to say.</p>
-        <div className="bot-grid">
-          {BOTS.map((b) => (
-            <button key={b.id} className={`bot-card ${b.id === botId ? 'on' : ''}`} onClick={() => setBotId(b.id)} aria-pressed={b.id === botId}>
-              <BotAvatar bot={b} />
-              <span className="bot-name">{b.name}{beaten[b.id] ? <span className="beaten" title={`Beaten ${beaten[b.id]}x`}>★</span> : null}</span>
-              <span className="bot-rating">{b.rating}</span>
-              <span className="bot-tag small">{b.tagline}</span>
-            </button>
-          ))}
-        </div>
+        {LEVELS.map((lv, li) => {
+          const list = BOTS.filter((b) => b.rating <= lv.max && (li === 0 || b.rating > LEVELS[li - 1].max))
+          return (
+            <div key={lv.name} className="bot-level">
+              <h5>{lv.name} <span className="muted small">{list[0].rating}-{list.at(-1).rating}</span></h5>
+              <div className="bot-grid">
+                {list.map((b) => (
+                  <button key={b.id} className={`bot-card ${b.id === botId ? 'on' : ''}`} onClick={() => choose(b.id)} aria-pressed={b.id === botId}>
+                    <BotAvatar bot={b} size={56} />
+                    <span className="bot-name">{b.name}{beaten[b.id] ? <span className="beaten" title={`Beaten ${beaten[b.id]}x`}>★</span> : null}</span>
+                    <span className="bot-rating">{b.rating}</span>
+                    <span className="bot-tag small">{b.tagline}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </section>
       <section className="card bot-setup">
         <div className="bot-chosen">
@@ -49,9 +97,24 @@ function BotPicker({ onStart }) {
             <button key={k} role="radio" aria-checked={color === k} className={color === k ? 'tab active' : 'tab'} onClick={() => setColor(k)}>{label}</button>
           ))}
         </div>
+        <h5>Time control</h5>
+        <div className="tc-picker">
+          {TIME_CONTROLS.map((g) => (
+            <div key={g.group} className="tc-group">
+              <span className="tc-head small muted"><span aria-hidden="true">{g.icon}</span> {g.group}</span>
+              <div className="tc-row">
+                {g.items.map((t) => {
+                  const on = tc && tc[0] === t[0] && tc[1] === t[1]
+                  return <button key={t.join('+')} className={`tc-btn ${on ? 'on' : ''}`} aria-pressed={!!on} onClick={() => chooseTc(t)}>{tcLabel(t)}</button>
+                })}
+              </div>
+            </div>
+          ))}
+          <button className={`tc-btn wide ${tc ? '' : 'on'}`} aria-pressed={!tc} onClick={() => chooseTc(null)}>No clock - take your time</button>
+        </div>
         <label className="check small"><input type="checkbox" checked={assist} onChange={(e) => setAssist(e.target.checked)} /> Allow hints and takebacks</label>
-        <button className="big-green" onClick={() => onStart({ bot, color: color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : color, assist })}>
-          <IconStar size={22} /> Play {bot.name}
+        <button className="big-green" onClick={() => onStart({ bot, color: color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : color, assist, tc })}>
+          <IconStar size={22} /> Play {bot.name}{tc ? ` · ${tcLabel(tc)}` : ''}
         </button>
       </section>
     </div>
@@ -60,7 +123,7 @@ function BotPicker({ onStart }) {
 
 /* ------------------------------------------------------------------ the game */
 function Game({ setup, onExit, onReview }) {
-  const { bot, color: me, assist } = setup
+  const { bot, color: me, assist, tc } = setup
   const botColor = me === 'w' ? 'b' : 'w'
   const [wrap, W] = useWidth(520)
   const [vh, setVh] = useState(typeof window !== 'undefined' ? window.innerHeight : 900)
@@ -80,12 +143,38 @@ function Game({ setup, onExit, onReview }) {
   const [helpUsed, setHelpUsed] = useState(false)
   const reqRef = useRef(0)
 
+  // ---- clocks: remaining ms per side; `since` = when the side to move started thinking
+  const clk = useRef({ w: tc ? tc[0] * 60000 : 0, b: tc ? tc[0] * 60000 : 0, since: null })
+  const clkHist = useRef([]) // remaining time after each move, for [%clk] in the PGN
+  const [, setTick] = useState(0)
+  const live = (c) => {
+    const k = clk.current
+    return k[c] - (k.since != null && gameRef.current.turn() === c ? performance.now() - k.since : 0)
+  }
+  /** Stop the running clock, charging the side to move for the time used. */
+  const stopClock = () => {
+    const k = clk.current
+    if (tc && k.since != null) { const c = gameRef.current.turn(); k[c] = Math.max(0, live(c)); k.since = null }
+  }
+  /** Called right after `mover` moved: charge their time, add the increment, start the other clock. */
+  const punch = (mover) => {
+    if (!tc) return
+    const k = clk.current
+    const now = performance.now()
+    const started = k.since != null
+    if (started) k[mover] = Math.max(0, k[mover] - (now - k.since))
+    if (started) k[mover] += tc[1] * 1000 // no increment for White's very first move
+    clkHist.current.push(k[mover])
+    k.since = now // clocks start once White has moved
+  }
+
   const game = gameRef.current
   const myTurn = !result && game.turn() === me && !thinking
 
   const finishIfOver = useCallback(() => {
     const g = gameRef.current
     if (!g.isGameOver()) return false
+    stopClock()
     let r
     if (g.isCheckmate()) {
       const winner = g.turn() === me ? 'bot' : 'me'
@@ -99,6 +188,34 @@ function Game({ setup, onExit, onReview }) {
     if (r.winner === 'me') markBeaten(bot.id)
     return true
   }, [bot, me])
+
+  // tick the clock display and catch a flag fall
+  useEffect(() => {
+    if (!tc || result) return
+    const iv = setInterval(() => {
+      const k = clk.current
+      if (k.since == null) return
+      const c = gameRef.current.turn()
+      if (live(c) <= 0) {
+        reqRef.current++
+        k[c] = 0; k.since = null
+        setThinking(false)
+        if (!canMate(gameRef.current, c === 'w' ? 'b' : 'w')) {
+          setResult({ winner: 'draw', text: 'Draw', reason: 'timeout vs insufficient material' })
+          setSay(pick(bot.chat.draw))
+        } else if (c === me) {
+          setResult({ winner: 'bot', text: `${bot.name} won`, reason: 'on time' })
+          setSay(pick(bot.chat.win))
+        } else {
+          setResult({ winner: 'me', text: 'You won!', reason: 'on time' })
+          setSay(pick(['My flag fell! Too slow...', ...bot.chat.loss]))
+          markBeaten(bot.id)
+        }
+      }
+      setTick((t) => t + 1)
+    }, 100)
+    return () => clearInterval(iv)
+  }, [tc, result]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const react = (mv, byBot) => {
     const g = gameRef.current
@@ -117,12 +234,20 @@ function Game({ setup, onExit, onReview }) {
     ;(async () => {
       const engine = await getBotEngine()
       const started = performance.now()
-      const mv = await chooseBotMove(engine, game.fen(), bot)
-      // a short, human-ish pause
-      const wait = Math.max(0, 450 + Math.random() * 700 - (performance.now() - started))
+      const left = tc ? live(botColor) : Infinity
+      // in time trouble the bot calculates less, like a person would
+      const depth = left < 5000 ? Math.min(bot.depth, 3) : left < 15000 ? Math.min(bot.depth, 6) : bot.depth
+      const mv = await chooseBotMove(engine, game.fen(), depth === bot.depth ? bot : { ...bot, depth })
+      // a human-ish pause, scaled to the clock: quick in bullet, more thought in rapid
+      const target = !tc ? 450 + Math.random() * 700
+        : clkHist.current.length < 4 ? 300 + Math.random() * 500 // opening moves come fast
+          : left < 5000 ? 80
+            : Math.min(Math.max(left / 45 + tc[1] * 500, 250), 6000) * (0.5 + Math.random())
+      const wait = Math.max(0, target - (performance.now() - started))
       await new Promise((r) => setTimeout(r, wait))
       if (id !== reqRef.current) return // a takeback or new game happened meanwhile
       const played = game.move({ from: mv.from, to: mv.to, promotion: mv.promotion || 'q' })
+      punch(botColor)
       setFen(game.fen()); setHistory(game.history()); setLastMove({ from: played.from, to: played.to })
       setThinking(false)
       if (!finishIfOver()) react(played, true)
@@ -133,6 +258,7 @@ function Game({ setup, onExit, onReview }) {
     if (!myTurn) return false
     let mv
     try { mv = game.move({ from, to, promotion: 'q' }) } catch { return false }
+    punch(me)
     setFen(game.fen()); setHistory(game.history()); setLastMove({ from, to }); setSel(null); setHint(null)
     if (!finishIfOver()) react(mv, false)
     return true
@@ -166,13 +292,18 @@ function Game({ setup, onExit, onReview }) {
     reqRef.current++
     setHelpUsed(true)
     // undo the bot's reply and your move (or just yours if the bot hasn't replied)
-    if (game.turn() === me && history.length >= 2) { game.undo(); game.undo() } else if (game.turn() !== me) game.undo()
+    stopClock()
+    const n = game.turn() === me && history.length >= 2 ? 2 : game.turn() !== me ? 1 : 0
+    for (let i = 0; i < n; i++) game.undo()
+    clkHist.current = clkHist.current.slice(0, game.history().length)
+    if (tc && game.history().length) clk.current.since = performance.now()
     setResult(null); setFen(game.fen()); setHistory(game.history()); setLastMove(null); setHint(null); setSel(null); setThinking(false)
     setSay(pick(['Changed your mind?', 'Take your time.', 'A second chance - use it well.']))
   }
   const resign = () => {
     if (result) return
     reqRef.current++
+    stopClock()
     setThinking(false)
     setResult({ winner: 'bot', text: `${bot.name} won`, reason: 'by resignation' })
     setSay(pick(bot.chat.win))
@@ -180,12 +311,16 @@ function Game({ setup, onExit, onReview }) {
 
   const pgn = () => {
     const g = new Chess()
-    for (const m of history) g.move(m)
+    history.forEach((m, i) => {
+      g.move(m)
+      if (tc && clkHist.current[i] != null) g.setComment(`[%clk ${pgnClock(clkHist.current[i])}]`)
+    })
     const res = result ? (result.winner === 'draw' ? '1/2-1/2' : (result.winner === 'me') === (me === 'w') ? '1-0' : '0-1') : '*'
     g.header('Event', 'Singh Master Chess vs bot', 'Site', 'Singh Master Chess', 'Date', new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
       'White', me === 'w' ? 'You' : `${bot.name} (bot)`, 'Black', me === 'b' ? 'You' : `${bot.name} (bot)`,
       'WhiteElo', me === 'w' ? '?' : String(bot.rating), 'BlackElo', me === 'b' ? '?' : String(bot.rating), 'Result', res,
-      'Termination', result ? `${result.text} ${result.reason}` : '')
+      'Termination', result ? `${result.text} ${result.reason}` : '',
+      'TimeControl', tc ? `${tc[0] * 60}${tc[1] ? `+${tc[1]}` : ''}` : '-')
     return g.pgn()
   }
 
@@ -205,7 +340,7 @@ function Game({ setup, onExit, onReview }) {
     <div className="bot-game">
       <div className="solver-top">
         <button className="secondary" onClick={onExit}>← Choose a bot</button>
-        <span className="muted small">You play {sideName(me)}{helpUsed ? ' · assisted' : ''}</span>
+        <span className="muted small">You play {sideName(me)} · {tcLabel(tc)}{helpUsed ? ' · assisted' : ''}</span>
       </div>
       <div className="solver-layout">
         <div className="solver-board" ref={wrap}>
@@ -215,6 +350,7 @@ function Game({ setup, onExit, onReview }) {
               <strong>{bot.name} <span className="muted">({bot.rating})</span></strong>
               <span className="bot-speech">{thinking ? `${bot.name} is thinking...` : say}</span>
             </div>
+            {tc && <Clock ms={live(botColor)} active={!result && clk.current.since != null && game.turn() === botColor} low={live(botColor) < Math.min(20000, tc[0] * 6000)} />}
           </div>
           <div className="board-wrap" style={{ width: size, height: size }}>
             <Chessboard
@@ -227,12 +363,12 @@ function Game({ setup, onExit, onReview }) {
               onPieceDragBegin={(p, sq) => { if (myTurn && p[0] === me) setSel(sq) }} onPieceDragEnd={() => setSel(null)}
               customSquareStyles={styles}
               customArrows={hint ? [[hint.slice(0, 2), hint.slice(2, 4), 'rgba(80,160,60,0.9)']] : []}
-              customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)' }}
+              customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)', backgroundImage: 'var(--rb-light-img, none)' }}
               animationDuration={200}
             />
           </div>
           <div className="player-bar"><i className={`piece ${me === 'w' ? 'white' : 'black'}`} /><strong>You</strong><span className="you-tag">you</span>
-            <span className="player-extra"><button className="icon-btn" onClick={() => setFlipped(!flipped)} title="Flip board" aria-label="Flip board"><IconFlip /></button></span>
+            <span className="player-extra">{tc && <Clock ms={live(me)} active={!result && clk.current.since != null && game.turn() === me} low={live(me) < Math.min(20000, tc[0] * 6000)} />}<button className="icon-btn" onClick={() => setFlipped(!flipped)} title="Flip board" aria-label="Flip board"><IconFlip /></button></span>
           </div>
         </div>
 

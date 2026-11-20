@@ -353,8 +353,8 @@ function BoardArea({ result, ply, flipped, setFlipped, showBest, players, retry 
             autoPromoteToQueen
             customArrows={arrows}
             customSquareStyles={squareStyles}
-            customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)' }}
-            customLightSquareStyle={{ backgroundColor: 'var(--rb-light)' }}
+            customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }}
+            customLightSquareStyle={{ backgroundColor: 'var(--rb-light)', backgroundImage: 'var(--rb-light-img, none)' }}
             animationDuration={180}
           />
           {badge && (

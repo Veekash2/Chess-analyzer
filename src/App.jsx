@@ -4,6 +4,7 @@ import InsightsView from './insights/InsightsView'
 import ReviewView from './review/ReviewView'
 import Mandala from './Mandala'
 import ThemePicker from './ThemePicker'
+import BoardPicker, { PieceFilters, PieceCss } from './BoardPicker'
 import { getRecent, pushRecent, removeRecent } from './recentPlayers'
 import CompareView from './compare/CompareView'
 import PuzzlesView from './puzzles/PuzzlesView'
@@ -223,7 +224,8 @@ export default function App() {
     <div className="page">
       <header className="hero">
         <Mandala className="hero-mandala" size={260} />
-        <ThemePicker />
+        <div className="pickers"><BoardPicker /><ThemePicker /></div>
+        <PieceFilters /><PieceCss />
         <div className="hero-brand">
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="hero-logo" width="52" height="52" />
           <div>

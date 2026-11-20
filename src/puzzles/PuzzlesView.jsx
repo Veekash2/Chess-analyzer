@@ -276,7 +276,7 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
               onPieceDragBegin={(piece, square) => { if (state === 'solving' && piece[0] === puzzle.color) setSel(square) }}
               onPieceDragEnd={() => setSel(null)}
               customSquareStyles={{ ...squares, ...moveDots }} customArrows={arrows}
-              customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)' }}
+              customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)', backgroundImage: 'var(--rb-light-img, none)' }}
               animationDuration={200}
             />
           </div>

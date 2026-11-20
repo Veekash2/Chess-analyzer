@@ -699,7 +699,7 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .bot-picker { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
 .bot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .bot-card { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto; column-gap: 10px; align-items: center; text-align: left; background: var(--bg); border: 1px solid var(--line); color: var(--ink); padding: 10px; border-radius: 12px; font-weight: 400; }
-.bot-card .bot-avatar { grid-row: 1 / 3; }
+.bot-card .bot-avatar, .bot-card .portrait { grid-row: 1 / 3; }
 .bot-card.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .bot-name { font-weight: 800; display: flex; gap: 4px; align-items: center; }
 .bot-rating { font: 700 .82rem var(--font-head); color: var(--ink2); }
@@ -723,3 +723,43 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .bot-game .player-bar { align-self: stretch; }
 @media (max-width: 900px) { .bot-picker { grid-template-columns: 1fr; } .bot-setup { position: static; } }
 .bot-game .solver-actions .big-green { grid-column: 1 / -1; }
+
+/* ---- bot time controls & clocks */
+.tc-picker { display: grid; gap: 8px; margin-bottom: 10px; }
+.tc-head { display: block; margin-bottom: 4px; font-weight: 600; }
+.tc-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tc-btn { padding: 9px 4px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
+.tc-btn:hover { border-color: var(--accent); }
+.tc-btn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tc-btn.wide { width: 100%; font-weight: 500; }
+.clock { margin-left: auto; min-width: 84px; text-align: right; padding: 5px 10px; border-radius: 6px; font: 700 1.2rem/1 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; background: rgba(127,127,127,0.18); color: var(--ink2); }
+.clock.on { background: var(--ink); color: var(--surface); }
+.clock.low { color: #e5484d; }
+.clock.on.low { background: #e5484d; color: #fff; animation: clock-pulse 1s ease-in-out infinite; }
+@keyframes clock-pulse { 50% { opacity: .78; } }
+.bot-game .player-bar .player-extra { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .clock.on.low { animation: none; } }
+
+.bot-level + .bot-level { margin-top: 14px; }
+.bot-level h5 { margin: 6px 0 8px; }
+.portrait { display: block; flex: none; border-radius: 18%; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+
+/* ---- board & piece picker */
+.pickers { display: flex; gap: 8px; justify-content: flex-end; }
+.board-menu { width: 300px; max-width: calc(100vw - 32px); padding: 10px; }
+.board-menu h6 { margin: 4px 2px 6px; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink2); }
+.pc-grid, .bd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+.pc-opt, .bd-opt { display: grid; justify-items: center; gap: 4px; padding: 6px 4px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-size: .74rem; line-height: 1.2; cursor: pointer; text-align: center; }
+.pc-opt.on, .bd-opt.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 40%, transparent); }
+.pc-prev-row { display: flex; padding: 2px 4px; border-radius: 6px; background: #b9c3c9; }
+.pc-prev svg { display: block; }
+.bd-prev { width: 44px; height: 30px; border-radius: 5px; background-image: var(--img, none), conic-gradient(var(--d) 25%, var(--l) 0 50%, var(--d) 0 75%, var(--l) 0); background-size: auto, 22px 15px; }
+.pickers { position: absolute; top: 14px; right: 14px; z-index: 30; }
+.pickers .theme-picker { position: relative; top: auto; right: auto; }
+@media (max-width: 640px) { .pickers { top: 10px; right: 10px; gap: 6px; } .board-picker .theme-btn-label { display: none; } }
+.board-menu .pc-grid, .board-menu .bd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.theme-menu.board-menu .pc-opt, .theme-menu.board-menu .bd-opt { display: grid; justify-items: center; align-content: start; width: auto; min-width: 0; gap: 4px; padding: 6px 4px; text-align: center; }
+.board-picker .board-menu { right: auto; left: 0; }
+@media (max-width: 640px) { .board-picker .board-menu { left: auto; right: -50px; } }
+.theme-menu.board-menu .pc-opt, .theme-menu.board-menu .bd-opt { grid-template-columns: 1fr; border: 1px solid var(--line); background: var(--bg); font-size: .74rem; line-height: 1.2; }
+.theme-menu.board-menu .pc-opt.on, .theme-menu.board-menu .bd-opt.on { border-color: var(--accent); }
