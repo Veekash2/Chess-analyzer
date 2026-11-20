@@ -2,6 +2,17 @@
 import { Chess } from 'chess.js'
 import { CLASSES, hangs } from '../review/reviewCore.js'
 
+/** How to think about each kind of puzzle - shown before you solve it. */
+export const ANALYSE_TIPS = {
+  mate: ['Start with every check you have - forcing moves come first.', 'Look at the squares around the enemy king: which are covered, which are free?', 'After each check, ask where the king can go and whether a follow-up check closes the net.'],
+  defence: ['First ask: what is your opponent threatening right now?', 'Look at their checks and captures after each move you consider.', 'Find a move that covers the threat - or makes a bigger threat of your own.'],
+  hanging: ['List every piece of yours that is attacked or not defended.', 'For each candidate move, ask: what does this leave unprotected?', 'Prefer moves that improve a piece while keeping everything defended.'],
+  tactic: ['Your opponent has just slipped - something is loose. Look for undefended pieces and an exposed king.', 'Check every Check, Capture and Threat (CCT) for you first.', 'Look for one move that attacks two things at once (a fork, pin or skewer).'],
+  endgame: ['Activate your king - in endgames it is a strong piece.', 'Look for passed pawns and count how fast each side can promote.', 'Count tempi: who gets there first?'],
+  opening: ['Develop knights and bishops, control the centre and get castled.', "Check what your opponent's last move threatens before you answer.", "Don't move the same piece twice without a reason."],
+  best: ['Scan checks, captures and threats for both sides.', 'Pick 2-3 candidate moves and picture the position after each one.', 'Choose the move that creates a threat or improves your worst piece.'],
+}
+
 export const THEMES = {
   mate: { label: 'Checkmate', icon: '#', blurb: 'You had a forced mate here.' },
   defence: { label: 'Defence', icon: '♚', blurb: 'Your move allowed a mating attack - find the defence.' },
@@ -81,11 +92,15 @@ export function buildPuzzles(result, headers, pgn, color, { includeInaccuracies 
         solution: line,
         bestSan: m.bestSan,
         bestLine: m.bestLine.slice(0, line.length),
+        bestLineFull: m.bestLine.slice(0, 6),
         theme,
         mateIn: theme === 'mate' ? best.mate : null,
         ply: m.ply,
         moveNo: Math.ceil(m.ply / 2),
         playedSan: m.san,
+        wrongText: m.explain?.wrong || null, // what went wrong in your game (shown up front)
+        betterText: m.explain?.better || null, // why the solution works (shown after solving)
+        playedLine: [m.san, ...m.replyLine].slice(0, 4),
         playedCls: m.cls,
         playedLabel: CLASSES[m.cls].label,
         wBest: m.wBest,

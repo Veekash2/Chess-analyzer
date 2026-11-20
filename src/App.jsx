@@ -223,6 +223,10 @@ export default function App() {
           <div>
             <h1>Singh Master Chess</h1>
             <p className="hero-tag">Chess was born in India as chaturanga. Study your games like a master.</p>
+            <p className="hero-theme-tip">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5C21 6.6 17 3 12 3zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" /></svg>
+              Themes are changeable - press the palette button (top right) to switch to Cyberpunk, Futuristic, Classic Wood or Minimal.
+            </p>
           </div>
         </div>
         <p className="hero-sub">Enter a Chess.com username to load every public game, see insights, review games with Stockfish and download them as PGN.</p>

@@ -6,6 +6,7 @@ import { CLASSES, COUNT_ORDER, fmtEval, parsePgnText, reviewGame, winPct } from 
 import { getEngine, getOpeningBook } from './engine'
 import { useWidth } from '../insights/Visuals'
 import { playerReport } from './coachReport'
+import { moveMotifs } from './motifs'
 import { THEMES, buildPuzzles, gameMeta } from '../puzzles/puzzleBuilder'
 
 /* ------------------------------------------------------------------ per-player game report */
@@ -447,7 +448,7 @@ function Summary({ result, players, headers, pgn, puzzles, onOpenPuzzles, onStar
   )
 }
 
-function Coach({ mv, showBest, setShowBest, onNext, onRetry }) {
+function Coach({ mv, showBest, setShowBest, onNext, onRetry, onExplain }) {
   return (
     <div className="coach">
       <div className="coach-avatar" aria-hidden="true">♞</div>
@@ -457,7 +458,8 @@ function Coach({ mv, showBest, setShowBest, onNext, onRetry }) {
           <strong>{mv.san} {VERDICT[mv.cls]}</strong>
           <span className={`eval-chip ${mv.evalAfter.mate != null || mv.evalAfter.cp >= 0 ? 'pos' : 'neg'}`}>{fmtEval(mv.evalAfter)}</span>
         </div>
-        <p>{mv.text}</p>
+        <p>{mv.explain?.text || mv.text}</p>
+        {mv.explain && mv.cls !== 'best' && mv.text && !mv.explain.text.includes(mv.text.slice(0, 20)) && ['brilliant', 'great'].includes(mv.cls) && <p className="small muted">{mv.text}</p>}
         {mv.bestLine.length > 0 && !['book', 'forced'].includes(mv.cls) && (
           <p className="muted small engine-line">Engine line: {mv.bestLine.slice(0, 6).join(' ')}</p>
         )}
@@ -468,6 +470,7 @@ function Coach({ mv, showBest, setShowBest, onNext, onRetry }) {
             <IconStar size={18} /> {showBest ? 'Hide best' : 'Best'}
           </button>
         )}
+        {onExplain && <button className="secondary" onClick={onExplain} title="Step through the moves that explain this"><IconBulb /> Explain</button>}
         {onRetry && <button className="secondary" onClick={onRetry} title="Try to find a better move"><IconRetry /> Retry</button>}
         <button className="next-btn" onClick={onNext}>Next <IconArrowRight /></button>
       </div>
@@ -536,6 +539,63 @@ function RetryPanel({ retry, mv, onHint, onSolution, onNextRetry, onExit, remain
   )
 }
 
+/* ------------------------------------------------------------------ explain: step through a line */
+const sideName = (fen) => (fen.split(' ')[1] === 'w' ? 'White' : 'Black')
+
+/** Positions + captions for a SAN line from `fen`. */
+export function buildSteps(fen, line) {
+  const steps = []
+  let cur = fen
+  for (const san of line) {
+    const c = new Chess(cur)
+    let mv
+    try { mv = c.move(san) } catch { break }
+    const motifs = moveMotifs(cur, san)
+    const top = motifs.find((m) => !['capture'].includes(m.kind)) || motifs[0]
+    steps.push({ san: mv.san, from: mv.from, to: mv.to, fenBefore: cur, fenAfter: c.fen(), who: sideName(cur), no: +cur.split(' ')[5], note: top?.text || '' })
+    cur = c.fen()
+  }
+  return steps
+}
+
+function ExplainPanel({ ex, setEx, mv, onExit }) {
+  const steps = ex.steps
+  const cur = steps[ex.step - 1]
+  const next = steps[ex.step]
+  const tabs = [['wrong', 'What went wrong'], ['better', 'Better was']].filter(([k]) => ex.lines[k]?.length)
+  return (
+    <div className="explain-panel">
+      <div className="retry-head">
+        <span className="retry-badge"><IconBulb /> Explain</span>
+        <button className="icon-btn" onClick={onExit} aria-label="Close explanation" title="Close"><IconClose /></button>
+      </div>
+      {tabs.length > 1 && (
+        <div className="tabs chips small-chips" role="tablist">
+          {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={ex.tab === k} className={ex.tab === k ? 'tab active' : 'tab'} onClick={() => setEx({ ...ex, tab: k, step: 0, steps: ex.lines[k] })}>{label}</button>)}
+        </div>
+      )}
+      <div className="coach-bubble">
+        <p className="small">{ex.tab === 'wrong' ? (mv.explain?.wrong || mv.text) : (mv.explain?.better || `The engine prefers ${mv.bestSan}.`)}</p>
+      </div>
+      <ol className="ex-steps">
+        {steps.map((st, i) => (
+          <li key={i} className={i === ex.step - 1 ? 'on' : i < ex.step ? 'done' : ''}>
+            <button onClick={() => setEx({ ...ex, step: i + 1 })}>
+              <span className="ex-san">{st.who === 'White' ? `${st.no}.` : i === 0 ? `${st.no}...` : ''} {st.san}</span>
+              {st.note && <span className="muted small"> - {st.note}</span>}
+            </button>
+          </li>
+        ))}
+      </ol>
+      <p className="small ex-now">{ex.step === 0 ? `Start position. ${next ? `${next.who} plays ${next.san}${next.note ? ` - ${next.note}` : ''}.` : ''}` : `${cur.who} played ${cur.san}${cur.note ? `: ${cur.note}` : ''}.`}</p>
+      <div className="coach-actions">
+        <button className="secondary" disabled={ex.step === 0} onClick={() => setEx({ ...ex, step: ex.step - 1 })}><IconPrev /> Back</button>
+        <button className="next-btn" disabled={ex.step >= steps.length} onClick={() => setEx({ ...ex, step: ex.step + 1 })}>Next move <IconArrowRight /></button>
+      </div>
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------------ main view */
 export default function ReviewView({ initialPgn, username, rows, puzzles, onOpenPuzzles }) {
   const [games, setGames] = useState(null)
@@ -550,6 +610,7 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
   const [showBest, setShowBest] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [retry, setRetry] = useState(null) // { ply, queue, fen, status, ... }
+  const [ex, setEx] = useState(null) // explain mode: { ply, tab, lines, steps, step }
   const abortRef = useRef(null)
 
   const game = games?.[gameIdx]
@@ -602,7 +663,29 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
   useEffect(() => () => abortRef.current?.abort(), [])
 
   const last = result ? result.moves.length : 0
-  const seek = useCallback((p) => { setRetry(null); setPly(Math.max(0, Math.min(last, p))) }, [last])
+  const seek = useCallback((p) => { setRetry(null); setEx(null); setPly(Math.max(0, Math.min(last, p))) }, [last])
+  const openExplain = (m) => {
+    const bad = ['inaccuracy', 'mistake', 'miss', 'blunder'].includes(m.cls)
+    const lines = {
+      wrong: buildSteps(m.fenBefore, [m.san, ...m.replyLine].slice(0, 6)),
+      better: m.bestSan && m.bestSan !== m.san ? buildSteps(m.fenBefore, m.bestLine.slice(0, 6)) : [],
+    }
+    const tab = bad ? 'wrong' : 'wrong'
+    setShowBest(false); setPlaying(false)
+    setEx({ ply: m.ply, tab, lines, steps: lines[tab], step: 0 })
+  }
+  // board override while explaining: position at the current step, arrow for the next move
+  const exBoard = ex && (() => {
+    const st = ex.steps
+    const fen = ex.step === 0 ? st[0]?.fenBefore : st[ex.step - 1].fenAfter
+    const nxt = st[ex.step]
+    const last = st[ex.step - 1]
+    return {
+      ply: ex.ply, fen, draggable: false,
+      arrows: nxt ? [[nxt.from, nxt.to, ex.tab === 'better' ? 'rgba(80,160,60,0.9)' : 'rgba(230,140,40,0.9)']] : [],
+      squareStyles: last ? { [last.from]: { background: '#ffffff33' }, [last.to]: { background: '#e3b23c88' } } : {},
+    }
+  })()
 
   // ---- Retry mode: replay the position before a weak move and let the user find a better one
   const youColor = players?.w.you ? 'w' : players?.b.you ? 'b' : null
@@ -715,7 +798,7 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
         <div className="review-layout">
           <div className="review-left">
             <BoardArea result={result} ply={ply} flipped={flipped} setFlipped={setFlipped} showBest={showBest} players={players}
-              retry={retry && { ...retry, draggable: retry.status === 'thinking', onDrop: onRetryDrop }} />
+              retry={(retry && { ...retry, draggable: retry.status === 'thinking', onDrop: onRetryDrop }) || exBoard} />
             <div className="review-controls" role="toolbar" aria-label="Move navigation">
               <button className="nav-btn" onClick={() => seek(0)} disabled={!retry && ply === 0} title="Start of game (Home)" aria-label="Start of game"><IconFirst /></button>
               <button className="nav-btn" onClick={() => seek(ply - 1)} disabled={!retry && ply === 0} title="Previous move (←)" aria-label="Previous move"><IconPrev /></button>
@@ -726,7 +809,9 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
           </div>
           <div className="review-right card">
             <h3 className="rv-title">Game Review</h3>
-            {retry && retryMove ? (
+            {ex && mv ? (
+              <ExplainPanel ex={ex} setEx={setEx} mv={mv} onExit={() => setEx(null)} />
+            ) : retry && retryMove ? (
               <RetryPanel retry={retry} mv={retryMove} remaining={retry.queue.length}
                 onHint={retryHint} onSolution={retrySolution} onNextRetry={retryNext}
                 onExit={() => { setRetry(null) }} />
@@ -736,6 +821,7 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
             ) : (
               <>
                 <Coach mv={mv} showBest={showBest} setShowBest={setShowBest} onNext={() => seek(ply + 1)}
+                  onExplain={!['book', 'forced'].includes(mv.cls) && (mv.replyLine.length || mv.bestLine.length) ? () => openExplain(mv) : null}
                   onRetry={['inaccuracy', 'mistake', 'miss', 'blunder'].includes(mv.cls) && mv.bestUci ? () => startRetry(mv.ply) : null} />
                 <MoveList result={result} ply={ply} onSeek={seek} />
                 <button className="link-btn" onClick={() => seek(0)}>← Back to summary</button>

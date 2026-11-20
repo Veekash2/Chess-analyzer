@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
-import { THEMES } from './puzzleBuilder'
+import { ANALYSE_TIPS, THEMES } from './puzzleBuilder'
 import { winPct } from '../review/reviewCore'
 import { getEngine } from '../review/engine'
 import { useWidth, Chips } from '../insights/Visuals'
@@ -98,7 +98,7 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
   const side = puzzle.color === 'w' ? 'White' : 'Black'
 
   const reset = useCallback(() => {
-    setFen(puzzle.fen); setStep(0); setState('solving'); setMsg(''); setMistakes(0); setHelp(false); setSquares({}); setArrows([]); recorded.current = false
+    setFen(puzzle.fen); setStep(0); setState('solving'); setMsg(''); setMistakes(0); setHelp(false); setSquares({}); setArrows([]); setSel(null); recorded.current = false
   }, [puzzle.id]) // eslint-disable-line react-hooks/exhaustive-deps -- saving an attempt updates the puzzle object; only reset for a different puzzle
   useEffect(reset, [reset])
 
@@ -114,7 +114,36 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
     return { fen: c.fen(), m }
   }
 
+  // tap-to-move: the selected piece and the squares it can go to
+  const [sel, setSel] = useState(null)
+  const targets = useMemo(() => {
+    if (!sel || state !== 'solving') return []
+    try { return new Chess(fen).moves({ square: sel, verbose: true }) } catch { return [] }
+  }, [sel, fen, state])
+  const moveDots = useMemo(() => {
+    if (!sel || !targets.length) return {}
+    const st = { [sel]: { background: 'rgba(255, 214, 102, 0.55)' } }
+    for (const t of targets) {
+      st[t.to] = t.captured
+        ? { background: 'radial-gradient(circle, transparent 58%, rgba(20, 20, 20, 0.35) 60%)' }
+        : { background: 'radial-gradient(circle, rgba(20, 20, 20, 0.32) 22%, transparent 24%)' }
+    }
+    return st
+  }, [sel, targets])
+  const lastClick = useRef({ sq: null, t: 0 })
+  const onSquareClick = (square) => {
+    if (state !== 'solving') return
+    // the board can report one tap as both a piece click and a square click
+    const now = performance.now()
+    if (lastClick.current.sq === square && now - lastClick.current.t < 250) return
+    lastClick.current = { sq: square, t: now }
+    if (sel && targets.some((t) => t.to === square)) { const from = sel; setSel(null); onDrop(from, square); return }
+    const p = new Chess(fen).get(square)
+    setSel(p && p.color === puzzle.color && square !== sel ? square : null)
+  }
+
   const onDrop = (from, to) => {
+    setSel(null)
     if (state !== 'solving') return false
     const c = new Chess(fen)
     let mv
@@ -207,7 +236,11 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
               arePiecesDraggable={state === 'solving'}
               isDraggablePiece={({ piece }) => piece[0] === puzzle.color}
               onPieceDrop={onDrop} autoPromoteToQueen
-              customSquareStyles={squares} customArrows={arrows}
+              onSquareClick={onSquareClick}
+              onPieceClick={(piece, square) => onSquareClick(square)}
+              onPieceDragBegin={(piece, square) => { if (state === 'solving' && piece[0] === puzzle.color) setSel(square) }}
+              onPieceDragEnd={() => setSel(null)}
+              customSquareStyles={{ ...squares, ...moveDots }} customArrows={arrows}
               customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)' }}
               animationDuration={200}
             />
@@ -218,6 +251,28 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
           <div className={`solver-msg ${state}`}>
             {state === 'solving' && !msg && <>Find the best move for <strong>{side}</strong>.</>}
             {msg}
+          </div>
+          <div className="puzzle-story">
+            <h5>What happened in your game</h5>
+            <p className="small">
+              You played <strong>{puzzle.playedSan}</strong> here - {/^[aeiou]/i.test(puzzle.playedLabel) ? 'an' : 'a'} {puzzle.playedLabel.toLowerCase()}.{' '}
+              {puzzle.wrongText || (puzzle.playedLine?.length > 1 ? `The game went ${puzzle.playedLine.join(' ')}, and your position got worse.` : 'It made your position worse.')}
+            </p>
+            {(state === 'solved' || state === 'revealed') ? (
+              <>
+                <h5>Why {puzzle.bestSan} is the answer</h5>
+                <p className="small">
+                  {puzzle.betterText || `${puzzle.bestSan} is the engine's choice: ${puzzle.bestLine.join(' ')}.`}{' '}
+                  Compare that with your {puzzle.playedSan}: {puzzle.wrongText ? 'instead of keeping control, it handed your opponent the chance described above.' : 'it gave your opponent an easier game.'}
+                </p>
+                <p className="small muted">Engine line: {(puzzle.bestLineFull || puzzle.bestLine).join(' ')}</p>
+              </>
+            ) : (
+              <>
+                <h5>How to work it out</h5>
+                <ol className="small tips-list">{(ANALYSE_TIPS[puzzle.theme] || ANALYSE_TIPS.best).map((t) => <li key={t}>{t}</li>)}</ol>
+              </>
+            )}
           </div>
           <div className="from-game">
             <span className="muted small">From your game</span>

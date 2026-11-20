@@ -666,3 +666,17 @@ th .p-chip, .h2h .p-chip, .fc-row .p-chip { padding-right: 10px; }
 .mu-edges i { width: 10px; height: 10px; border-radius: 50%; background: var(--pc); flex: 0 0 auto; transform: translateY(1px); }
 @media (max-width: 720px) { .mu-grid { grid-template-columns: 1fr; } }
 .sample-warn { color: var(--loss); font-weight: 600; }
+
+/* ---------- explain mode ---------- */
+.explain-panel { display: flex; flex-direction: column; gap: 10px; }
+.ex-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+.ex-steps button { width: 100%; text-align: left; background: transparent; border: 1px solid var(--line); color: var(--ink); font-weight: 500; padding: 6px 10px; border-radius: 8px; font-size: .86rem; }
+.ex-steps li.done button { opacity: .7; }
+.ex-steps li.on button { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, transparent); opacity: 1; }
+.ex-san { font: 700 .88rem ui-monospace, Consolas, monospace; }
+.ex-now { margin: 0; padding: 8px 10px; border-left: 3px solid var(--gold); background: color-mix(in oklab, var(--gold) 8%, transparent); border-radius: 6px; }
+.coach-actions button:disabled { opacity: .45; }
+.puzzle-story { display: flex; flex-direction: column; gap: 4px; }
+.puzzle-story h5 { margin: 6px 0 0; font: 700 .9rem var(--font-head); }
+.puzzle-story p { margin: 0; line-height: 1.5; }
+.tips-list { margin: 2px 0 0; padding-left: 18px; line-height: 1.5; color: var(--ink2); }

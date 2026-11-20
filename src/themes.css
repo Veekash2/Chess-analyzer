@@ -164,3 +164,5 @@
 [data-theme='futuristic'] .hero .search input { background: rgba(6, 13, 28, .7); color: #e6f3ff; border-color: rgba(125, 211, 252, .45); }
 [data-theme='classic'] .hero .search input { background: #fbf6ec; color: #2a1d14; }
 [data-theme='minimal'] .hero .search input { background: #ffffff; color: #111827; }
+.hero-theme-tip { margin: 4px 0 0; font-size: .8rem; display: flex; align-items: center; gap: 6px; color: color-mix(in oklab, var(--hero-ink) 72%, transparent); }
+.hero-theme-tip svg { flex: 0 0 auto; color: var(--hero-title); }

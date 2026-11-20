@@ -3,6 +3,7 @@
 //   { lines: [{ cp?, mate?, pv: [uci...] }, ...] }  (scores from the side to move, best first)
 import { Chess } from 'chess.js'
 import { parseMovetext } from '../insights/analyzeGame.js'
+import { explainMove } from './explain.js'
 
 const VAL = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 }
 const NAMES = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' }
@@ -279,7 +280,10 @@ export function classifyGame(game, fens, evals, openings = globalThis.__openingB
       isCastle: m.san.startsWith('O-O'), promotion: m.promotion, sacrifice,
     })
   }
-  for (const mv of moves) mv.text = coachText(mv, moves, openingName)
+  for (const mv of moves) {
+    mv.text = coachText(mv, moves, openingName)
+    try { mv.explain = explainMove(mv, moves[mv.ply - 2] || null) } catch { mv.explain = null } // richer, motif-based explanation
+  }
   return { moves, fens, evals, summary: summarize(moves), openingName }
 }
 
