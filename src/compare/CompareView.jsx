@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchAllGames, fetchProfile } from '../chessApi'
 import { POOLS, deepCompare, matchup, quickCompare } from './compareData'
 import { WdlBar } from '../insights/Charts'
@@ -26,7 +26,12 @@ function PlayerChip({ name, color, onRemove }) {
 }
 
 export default function CompareView({ me, suggestions = [] }) {
-  const [names, setNames] = useState(me ? [me] : [])
+  // remember the last group you compared (saved in this browser)
+  const [names, setNames] = useState(() => {
+    try { const saved = JSON.parse(localStorage.getItem('smc-compare-names') || '[]'); if (Array.isArray(saved) && saved.length) return saved.slice(0, MAX) } catch { /* ignore */ }
+    return me ? [me] : []
+  })
+  useEffect(() => { try { localStorage.setItem('smc-compare-names', JSON.stringify(names)) } catch { /* ignore */ } }, [names])
   const [input, setInput] = useState('')
   const [players, setPlayers] = useState(null) // [{ username, profile, stats }]
   const [status, setStatus] = useState('idle') // idle | loading | done | error

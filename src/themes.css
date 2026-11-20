@@ -166,3 +166,14 @@
 [data-theme='minimal'] .hero .search input { background: #ffffff; color: #111827; }
 .hero-theme-tip { margin: 4px 0 0; font-size: .8rem; display: flex; align-items: center; gap: 6px; color: color-mix(in oklab, var(--hero-ink) 72%, transparent); }
 .hero-theme-tip svg { flex: 0 0 auto; color: var(--hero-title); }
+
+/* recent players under the search box */
+.recent-users { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.recent-label { font-size: .8rem; color: color-mix(in oklab, var(--hero-ink) 75%, transparent); margin-right: 2px; }
+.recent-chip { display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid color-mix(in oklab, var(--hero-title) 50%, transparent); background: color-mix(in oklab, #000 18%, transparent); overflow: hidden; }
+.recent-chip.first, .recent-chip.on { border-color: var(--hero-title); background: color-mix(in oklab, var(--hero-title) 22%, transparent); }
+.recent-go { background: transparent; border: 0; color: var(--hero-ink); font-size: .82rem; font-weight: 700; padding: 4px 4px 4px 12px; border-radius: 0; }
+.recent-x { background: transparent; border: 0; color: color-mix(in oklab, var(--hero-ink) 60%, transparent); padding: 4px 10px 4px 6px; font-size: 1rem; line-height: 1; border-radius: 0; }
+.recent-x:hover { color: var(--hero-title); }
+[data-theme='minimal'] .recent-chip { background: #f3f4f6; border-color: #e5e7eb; }
+[data-theme='minimal'] .recent-chip.first, [data-theme='minimal'] .recent-chip.on { border-color: #2563eb; background: #eff6ff; }

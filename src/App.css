@@ -680,3 +680,5 @@ th .p-chip, .h2h .p-chip, .fc-row .p-chip { padding-right: 10px; }
 .puzzle-story h5 { margin: 6px 0 0; font: 700 .9rem var(--font-head); }
 .puzzle-story p { margin: 0; line-height: 1.5; }
 .tips-list { margin: 2px 0 0; padding-left: 18px; line-height: 1.5; color: var(--ink2); }
+.sol-steps { margin: 2px 0 4px; padding-left: 20px; line-height: 1.6; }
+.sol-steps li.theirs { color: var(--ink2); }

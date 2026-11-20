@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { ANALYSE_TIPS, THEMES } from './puzzleBuilder'
+import { buildStory, ideaHint } from './puzzleStory'
 import { winPct } from '../review/reviewCore'
 import { getEngine } from '../review/engine'
 import { useWidth, Chips } from '../insights/Visuals'
@@ -194,12 +195,37 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
     return true
   }
 
+  // explanation of this puzzle (engine look + tactic detector), built when it opens
+  const [story, setStory] = useState(null)
+  useEffect(() => {
+    let alive = true
+    setStory('loading')
+    buildStory(puzzle).then((st) => alive && setStory(st)).catch(() => alive && setStory(null))
+    return () => { alive = false }
+  }, [puzzle.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // hints get stronger each press, like Chess.com: the idea -> the piece -> the move
+  const [hintLevel, setHintLevel] = useState(0)
+  useEffect(() => { setHintLevel(0) }, [step, puzzle.id])
   const hint = () => {
     const u = puzzle.solution[step]
     if (!u) return
     setHelp(true)
-    setSquares({ [u.slice(0, 2)]: { background: '#e3b23caa', boxShadow: 'inset 0 0 0 3px #e3b23c' } })
+    const level = Math.min(3, hintLevel + 1)
+    setHintLevel(level)
+    if (level === 1) {
+      setMsg(`Hint: ${ideaHint(fen, u)}`)
+    } else if (level === 2) {
+      const piece = new Chess(fen).get(u.slice(0, 2))
+      setMsg(`Hint: move your ${{ p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' }[piece?.type] || 'piece'} on ${u.slice(0, 2)}.`)
+      setSquares({ [u.slice(0, 2)]: { background: '#e3b23caa', boxShadow: 'inset 0 0 0 3px #e3b23c' } })
+    } else {
+      setMsg('Hint: play the move shown by the arrow.')
+      setSquares({ [u.slice(0, 2)]: { background: '#e3b23caa', boxShadow: 'inset 0 0 0 3px #e3b23c' } })
+      setArrows([[u.slice(0, 2), u.slice(2, 4), 'rgba(227,178,60,0.95)']])
+    }
   }
+  const hintLabel = ['Hint', 'Bigger hint', 'Show the move', 'Show the move'][hintLevel]
   const reveal = async () => {
     setHelp(true); setState('revealed'); finish(false, false)
     let f = fen
@@ -255,17 +281,39 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
           <div className="puzzle-story">
             <h5>What happened in your game</h5>
             <p className="small">
-              You played <strong>{puzzle.playedSan}</strong> here - {/^[aeiou]/i.test(puzzle.playedLabel) ? 'an' : 'a'} {puzzle.playedLabel.toLowerCase()}.{' '}
-              {puzzle.wrongText || (puzzle.playedLine?.length > 1 ? `The game went ${puzzle.playedLine.join(' ')}, and your position got worse.` : 'It made your position worse.')}
+              You played <strong>{puzzle.playedSan}</strong> here - {/^[aeiou]/i.test(puzzle.playedLabel) ? 'an' : 'a'} {puzzle.playedLabel.toLowerCase()}.
             </p>
+            {story === 'loading' && <p className="small muted">Working out what went wrong...</p>}
+            {story && story !== 'loading' && (
+              <>
+                <p className="small">{story.evalLine}</p>
+                {story.wrong && <p className="small">{story.wrong}</p>}
+              </>
+            )}
+            {!story && puzzle.wrongText && <p className="small">{puzzle.wrongText}</p>}
             {(state === 'solved' || state === 'revealed') ? (
               <>
                 <h5>Why {puzzle.bestSan} is the answer</h5>
-                <p className="small">
-                  {puzzle.betterText || `${puzzle.bestSan} is the engine's choice: ${puzzle.bestLine.join(' ')}.`}{' '}
-                  Compare that with your {puzzle.playedSan}: {puzzle.wrongText ? 'instead of keeping control, it handed your opponent the chance described above.' : 'it gave your opponent an easier game.'}
-                </p>
-                <p className="small muted">Engine line: {(puzzle.bestLineFull || puzzle.bestLine).join(' ')}</p>
+                {story && story !== 'loading' ? (
+                  <>
+                    <p className="small">{story.why}</p>
+                    {story.steps.length > 1 && (
+                      <ol className="small sol-steps">
+                        {story.steps.map((st, i) => (
+                          <li key={i} className={st.mine ? 'mine' : 'theirs'}>
+                            <strong>{st.san}</strong>{st.mine ? ' (you)' : ' (opponent)'}{st.note ? ` - ${st.note}` : ''}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                    <h5>Your move vs the solution</h5>
+                    <p className="small">{story.compare}</p>
+                    {story.better && <p className="small">{story.better}</p>}
+                  </>
+                ) : (
+                  <p className="small">{puzzle.betterText || `${puzzle.bestSan} is the engine's choice: ${puzzle.bestLine.join(' ')}.`}</p>
+                )}
+                <p className="small muted">Engine line: {(story && story !== 'loading' && story.bestLine.length ? story.bestLine : (puzzle.bestLineFull || puzzle.bestLine)).join(' ')}</p>
               </>
             ) : (
               <>
@@ -286,7 +334,7 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
           </div>
           <div className="solver-actions">
             {(state === 'solving' || state === 'wrong') && <>
-              <button className="secondary" onClick={hint}><IconBulb /> Hint</button>
+              <button className="secondary" onClick={hint} title="Each press gives a stronger hint"><IconBulb /> {hintLabel}</button>
               <button className="secondary" onClick={reveal}><IconStar size={18} /> Solution</button>
             </>}
             {(state === 'solved' || state === 'revealed') && <button className="secondary" onClick={reset}><IconRetry /> Retry</button>}

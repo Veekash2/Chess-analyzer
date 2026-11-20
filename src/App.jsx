@@ -4,6 +4,7 @@ import InsightsView from './insights/InsightsView'
 import ReviewView from './review/ReviewView'
 import Mandala from './Mandala'
 import ThemePicker from './ThemePicker'
+import { getRecent, pushRecent, removeRecent } from './recentPlayers'
 import CompareView from './compare/CompareView'
 import PuzzlesView from './puzzles/PuzzlesView'
 import { usePuzzleStore } from './puzzles/puzzleStore'
@@ -49,7 +50,9 @@ function WdlBar({ s }) {
 }
 
 export default function App() {
-  const [username, setUsername] = useState('')
+  // remember who was looked up last (saved in this browser)
+  const [recent, setRecent] = useState(getRecent)
+  const [username, setUsername] = useState(() => getRecent()[0] || '')
   const [status, setStatus] = useState('idle') // idle | loading | done | error
   const [error, setError] = useState('')
   const [progress, setProgress] = useState(null)
@@ -59,9 +62,10 @@ export default function App() {
   const [tc, setTc] = useState('all')
   const abortRef = useRef(null)
 
-  async function load(e) {
-    e.preventDefault()
-    const name = username.trim()
+  async function load(e, override) {
+    e?.preventDefault()
+    const name = (override ?? username).trim()
+    if (override) setUsername(override)
     if (!name) return
     abortRef.current?.abort()
     const ctrl = new AbortController()
@@ -74,6 +78,7 @@ export default function App() {
       setRaw(games)
       setFetchedFor(p.profile.username || name)
       setStatus('done')
+      setRecent(pushRecent(name))
     } catch (err) {
       if (err.name === 'AbortError') { setStatus('idle'); return }
       setError(err.status === 404 ? `No Chess.com player called "${name}".` : err.message)
@@ -245,6 +250,17 @@ export default function App() {
             <button type="submit" disabled={!username.trim()}>Get games</button>
           )}
         </form>
+        {recent.length > 0 && status !== 'loading' && (
+          <div className="recent-users">
+            <span className="recent-label">{status === 'idle' && !fetchedFor ? 'Welcome back:' : 'Recent:'}</span>
+            {recent.map((n, i) => (
+              <span key={n} className={`recent-chip ${i === 0 && !fetchedFor ? 'first' : ''} ${fetchedFor && n.toLowerCase() === fetchedFor.toLowerCase() ? 'on' : ''}`}>
+                <button className="recent-go" onClick={() => load(null, n)} title={`Load ${n}'s games`}>{n}</button>
+                <button className="recent-x" onClick={() => setRecent(removeRecent(n))} aria-label={`Forget ${n}`} title="Forget">×</button>
+              </span>
+            ))}
+          </div>
+        )}
         {status === 'error' && <p className="error">{error}</p>}
         <div className="hero-links">
           {page !== 'review' && <button className="link-btn hero-alt" onClick={() => openReview(null)}>Review a game from a PGN file →</button>}
