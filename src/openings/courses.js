@@ -11,6 +11,8 @@ export const COMMON_NOTES = {
   'O-O': 'Castle - king safe, rook in the game.',
 }
 
+import { MORE_COURSES } from './moreCourses'
+
 const L = (name, moves) => ({ name, moves: moves.split(' ') })
 
 export const COURSES = [
@@ -283,6 +285,8 @@ export const COURSES = [
     },
   },
 ]
+
+COURSES.push(...MORE_COURSES)
 
 // ---- progress (which lines you have practised without mistakes), kept in this browser
 const KEY = 'smc-openings-v1'
