@@ -24,3 +24,19 @@ export function getOpeningBook() {
   bookPromise ||= import('../data/openings.json').then((m) => m.default)
   return bookPromise
 }
+
+// A second engine just for the practice bots (wider MultiPV, so weaker bots can pick
+// "good enough" moves), kept separate so a review and a bot game never block each other.
+let botPromise = null
+export function getBotEngine() {
+  if (!botPromise) {
+    botPromise = (async () => {
+      const worker = new Worker(ENGINE_URL)
+      const client = createUciClient((line) => worker.postMessage(line))
+      worker.onmessage = (e) => String(e.data).split('\n').forEach((l) => l && client.onLine(l.trim()))
+      await client.init({ multiPv: 5, hash: 16 })
+      return client
+    })()
+  }
+  return botPromise
+}

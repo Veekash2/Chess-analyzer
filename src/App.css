@@ -694,3 +694,32 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .small-btn { padding: 5px 10px; font-size: .8rem; }
 .storage-full { color: var(--loss); font-weight: 600; }
 .storage-low { color: var(--gold); font-weight: 600; }
+
+/* ---------- play bots ---------- */
+.bot-picker { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.bot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.bot-card { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto; column-gap: 10px; align-items: center; text-align: left; background: var(--bg); border: 1px solid var(--line); color: var(--ink); padding: 10px; border-radius: 12px; font-weight: 400; }
+.bot-card .bot-avatar { grid-row: 1 / 3; }
+.bot-card.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.bot-name { font-weight: 800; display: flex; gap: 4px; align-items: center; }
+.bot-rating { font: 700 .82rem var(--font-head); color: var(--ink2); }
+.bot-tag { grid-column: 1 / -1; color: var(--ink2); margin-top: 6px; line-height: 1.35; }
+.beaten { color: var(--gold); }
+.bot-avatar { display: inline-grid; place-items: center; border-radius: 14px; background: radial-gradient(circle at 30% 25%, color-mix(in oklab, var(--bc) 55%, #fff), var(--bc)); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); box-shadow: inset 0 0 0 2px rgba(255,255,255,.25); flex: 0 0 auto; line-height: 1; }
+.bot-setup { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; position: sticky; top: 8px; }
+.bot-chosen { display: flex; gap: 12px; align-items: center; }
+.bot-chosen p { margin: 4px 0 0; }
+.bot-setup h5 { margin: 4px 0 0; font: 700 .9rem var(--font-head); }
+.bot-bar { display: flex; gap: 10px; align-items: center; align-self: stretch; }
+.bot-bar-text { display: flex; flex-direction: column; min-width: 0; }
+.bot-speech { position: relative; font-size: .88rem; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; margin-top: 4px; }
+.bot-moves { max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px 0; }
+.bot-moves .mv { padding: 3px 6px; font-size: .88rem; }
+.game-over { display: flex; flex-direction: column; align-items: center; padding: 14px; border-radius: 12px; text-align: center; }
+.game-over strong { font: 700 1.5rem var(--font-head); }
+.game-over.me { background: color-mix(in oklab, #6a9a35 25%, transparent); border: 1px solid #6a9a35; }
+.game-over.bot { background: color-mix(in oklab, var(--loss) 18%, transparent); border: 1px solid var(--loss); }
+.game-over.draw { background: color-mix(in oklab, var(--draw) 25%, transparent); border: 1px solid var(--draw); }
+.bot-game .player-bar { align-self: stretch; }
+@media (max-width: 900px) { .bot-picker { grid-template-columns: 1fr; } .bot-setup { position: static; } }
+.bot-game .solver-actions .big-green { grid-column: 1 / -1; }
