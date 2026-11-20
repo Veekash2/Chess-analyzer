@@ -182,14 +182,23 @@ function scoreFor(ev, color) {
   return color === 'w' ? s : flip(s)
 }
 
-function phaseOf(fen, ply, book) {
+/**
+ * Game phase, using the same rule of thumb as Lichess: the endgame starts once
+ * 6 or fewer pieces are left (queens, rooks, bishops, knights - not kings or pawns),
+ * or when the queens are off and each side has at most a rook and a minor piece.
+ */
+export function phaseOf(fen, ply, book) {
   const board = fen.split(' ')[0]
-  let nonPawn = 0
+  let pieces = 0, queens = 0
+  const side = { w: 0, b: 0 }
   for (const ch of board) {
     const t = ch.toLowerCase()
-    if ('nbrq'.includes(t)) nonPawn += VAL[t]
+    if (!'nbrq'.includes(t)) continue
+    pieces++
+    if (t === 'q') queens++
+    side[ch === t ? 'b' : 'w'] += VAL[t]
   }
-  if (nonPawn <= 26) return 'endgame'
+  if (pieces <= 6 || (queens === 0 && side.w <= 8 && side.b <= 8)) return 'endgame'
   if (book || ply < 20) return 'opening'
   return 'middlegame'
 }

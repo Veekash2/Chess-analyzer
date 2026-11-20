@@ -25,6 +25,16 @@ export function ClassIcon({ cls, size = 18 }) {
   )
 }
 
+/** One line explaining where the phases began, or why a phase has no grade. */
+function phaseNote(moves) {
+  const moveNo = (m) => Math.ceil(m.ply / 2)
+  const firstEnd = moves.find((m) => m.phase === 'endgame')
+  const firstMid = moves.find((m) => m.phase === 'middlegame')
+  const lastMove = moves.at(-1)
+  if (firstEnd) return `Endgame began at move ${moveNo(firstEnd)}${firstMid ? `, middlegame at move ${moveNo(firstMid)}` : ''}.`
+  return `No endgame: the game finished at move ${moveNo(lastMove)} with plenty of pieces still on the board. (An endgame starts when 6 or fewer pieces are left, not counting kings and pawns.)`
+}
+
 function phaseClass(acc) {
   if (acc == null) return null
   if (acc >= 90) return 'best'
@@ -256,7 +266,9 @@ function Summary({ result, players, onStart, onSeek, retryCount, onRetryAll }) {
           {['opening', 'middlegame', 'endgame'].map((p) => (
             <tr key={p}>
               <td>{p[0].toUpperCase() + p.slice(1)}</td>
-              {[w, b].map((s, i) => (
+              {w.phases[p] == null && b.phases[p] == null ? (
+                <td colSpan={2} className="center muted small">Not reached</td>
+              ) : [w, b].map((s, i) => (
                 <td key={i} className="center">
                   {s.phases[p] != null ? <span className="phase-cell"><ClassIcon cls={phaseClass(s.phases[p])} size={20} /><span className="muted small">{s.phases[p].toFixed(0)}</span></span> : <span className="muted">-</span>}
                 </td>
@@ -265,6 +277,7 @@ function Summary({ result, players, onStart, onSeek, retryCount, onRetryAll }) {
           ))}
         </tbody>
       </table>
+      <p className="muted small phase-note">{phaseNote(result.moves)}</p>
       {keyMoments.length > 0 && (
         <>
           <h4>Key moments</h4>
