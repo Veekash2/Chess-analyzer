@@ -3,7 +3,8 @@ import { useCustomPieces } from '../BoardPicker'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { BOTS, CELEBS, CELEB_GROUP, ALL_BOTS, LEVELS, chooseBotMove, getBeaten, markBeaten, materialFor, pick } from './bots'
-import { getBotEngine } from '../review/engine'
+import { getBotEngine, getOpeningBook } from '../review/engine'
+import { lineFor } from './chatLines'
 import Portrait from './Portrait'
 import { useWidth } from '../insights/Visuals'
 import { IconBulb, IconFlip, IconRetry, IconStar } from '../review/icons'
@@ -150,7 +151,7 @@ function Game({ setup, onExit, onReview }) {
   const [fen, setFen] = useState(gameRef.current.fen())
   const [history, setHistory] = useState([])
   const [thinking, setThinking] = useState(false)
-  const [say, setSay] = useState(pick(bot.chat.hello))
+  const [say, setSay] = useState(() => lineFor(bot, 'hello'))
   const [result, setResult] = useState(null) // { text, winner: 'me'|'bot'|'draw', reason }
   const [flipped, setFlipped] = useState(me === 'b')
   const [sel, setSel] = useState(null)
@@ -159,6 +160,28 @@ function Game({ setup, onExit, onReview }) {
   const [helpUsed, setHelpUsed] = useState(false)
   const reqRef = useRef(0)
   const trick = useRef({}) // per-game state for one-off bot tricks
+  // ---- chat memory
+  const bookRef = useRef(null)
+  const chat = useRef({ family: null, lastPly: -9, prevEval: null, saidLow: false })
+  useEffect(() => { getOpeningBook().then((b) => { bookRef.current = b }) }, [])
+  const speak = (event, vars) => {
+    const t = lineFor(bot, event, vars)
+    if (t) { setSay(t); chat.current.lastPly = gameRef.current.history().length }
+    return !!t
+  }
+  const quietFor = () => gameRef.current.history().length - chat.current.lastPly
+  /** Opening name if this move reached a new named opening family. */
+  const openingNow = () => {
+    const g = gameRef.current
+    const n = g.history().length
+    if (!bookRef.current || n < 3 || n > 20) return null
+    const name = bookRef.current[g.fen().split(' ').slice(0, 4).join(' ')]
+    if (!name) return null
+    const fam = name.replace(/^[A-E]\d\d /, '').split(':')[0].trim()
+    if (!fam || fam === chat.current.family || /Pawn Game|Pawn Opening$/.test(fam)) return null
+    chat.current.family = fam
+    return fam
+  }
 
   // ---- clocks: remaining ms per side; `since` = when the side to move started thinking
   const clk = useRef({ w: tc ? tc[0] * 60000 : 0, b: tc ? tc[0] * 60000 : 0, since: null })
@@ -201,7 +224,7 @@ function Game({ setup, onExit, onReview }) {
       r = { winner: 'draw', text: 'Draw', reason: `by ${why}` }
     }
     setResult(r)
-    setSay(pick(bot.chat[r.winner === 'me' ? 'loss' : r.winner === 'bot' ? 'win' : 'draw']))
+    setSay(lineFor(bot, r.winner === 'me' ? 'loss' : r.winner === 'bot' ? 'win' : 'draw'))
     if (r.winner === 'me') markBeaten(bot.id)
     return true
   }, [bot, me])
@@ -219,29 +242,55 @@ function Game({ setup, onExit, onReview }) {
         setThinking(false)
         if (!canMate(gameRef.current, c === 'w' ? 'b' : 'w')) {
           setResult({ winner: 'draw', text: 'Draw', reason: 'timeout vs insufficient material' })
-          setSay(pick(bot.chat.draw))
+          setSay(lineFor(bot, 'draw'))
         } else if (c === me) {
           setResult({ winner: 'bot', text: `${bot.name} won`, reason: 'on time' })
-          setSay(pick(bot.chat.win))
+          setSay(lineFor(bot, 'win'))
         } else {
           setResult({ winner: 'me', text: 'You won!', reason: 'on time' })
           setSay(pick(['My flag fell! Too slow...', ...bot.chat.loss]))
           markBeaten(bot.id)
         }
       }
+      if (c === me && !chat.current.saidLow && live(me) < 15000 && live(me) > 0) { chat.current.saidLow = true; speak('lowTime') }
       setTick((t) => t + 1)
     }, 100)
     return () => clearInterval(iv)
   }, [tc, result]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const react = (mv, byBot) => {
+  /** Decide what (if anything) the bot says after a move - most interesting thing first. */
+  const react = (mv, byBot, evalEvent) => {
     const g = gameRef.current
-    if (g.isCheck() && byBot && Math.random() < 0.6) return setSay(pick(bot.chat.check))
-    if (mv.captured && Math.random() < 0.5) return setSay(pick(byBot ? bot.chat.takes : bot.chat.lost))
+    const opening = openingNow()
+    if (byBot) {
+      if (evalEvent && speak(evalEvent)) return
+      if (opening && speak('myOpening', { opening })) return
+      if (g.isCheck() && Math.random() < 0.6 && speak('check')) return
+      if (mv.captured === 'q' && !g.board().flat().some((p) => p && p.type === 'q') && speak('queenTrade')) return
+      if (quietFor() < 2) return
+      if (mv.captured && Math.random() < 0.5 && speak('takes')) return
+    } else {
+      if (mv.promotion && speak('promote')) return
+      if (mv.flags.includes('k') || mv.flags.includes('q')) { if (Math.random() < 0.7 && speak('castle')) return }
+      if (mv.captured === 'q' && !g.board().flat().some((p) => p && p.type === 'q') && speak('queenTrade')) return
+      if (opening && speak('opening', { opening })) return
+      if (quietFor() < 2) return
+      if (mv.captured && Math.random() < 0.5 && speak('lost')) return
+    }
+    if (quietFor() < 4) return
     const bal = materialFor(g.fen(), botColor)
-    if (bal >= 4 && Math.random() < 0.15) setSay(pick(bot.chat.winning))
-    else if (bal <= -4 && Math.random() < 0.15) setSay(pick(bot.chat.losing))
+    if (bal >= 4 && Math.random() < 0.25) speak('winning')
+    else if (bal <= -4 && Math.random() < 0.25) speak('losing')
   }
+
+  // say something if you think for a long time
+  useEffect(() => {
+    if (!myTurn || result) return
+    const wait = tc ? Math.min(30000, Math.max(10000, live(me) * 0.2)) : 25000
+    const t = setTimeout(() => speak('idle'), wait)
+    return () => clearTimeout(t)
+  }, [fen, myTurn, result]) // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // bot's turn
   useEffect(() => {
@@ -268,7 +317,16 @@ function Game({ setup, onExit, onReview }) {
       punch(botColor)
       setFen(game.fen()); setHistory(game.history()); setLastMove({ from: played.from, to: played.to })
       setThinking(false)
-      if (!finishIfOver()) { if (mv.say) setSay(mv.say); else react(played, true) }
+      // did your last move change the evaluation a lot? (bot's view, before and after your move)
+      const ev = trick.current.lastEval
+      let evalEvent = null
+      if (ev != null && chat.current.prevEval != null && bot.depth >= 3) {
+        const d = ev - chat.current.prevEval
+        if (d >= 220 && ev > -150) evalEvent = 'userBlunder'
+        else if (d <= -160) evalEvent = 'goodMove'
+      }
+      if (ev != null) chat.current.prevEval = ev
+      if (!finishIfOver()) { if (mv.say) { setSay(mv.say); chat.current.lastPly = game.history().length } else react(played, true, evalEvent) }
     })()
   }, [fen, result]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -324,7 +382,7 @@ function Game({ setup, onExit, onReview }) {
     stopClock()
     setThinking(false)
     setResult({ winner: 'bot', text: `${bot.name} won`, reason: 'by resignation' })
-    setSay(pick(bot.chat.win))
+    setSay(lineFor(bot, 'win'))
   }
 
   const pgn = () => {
@@ -411,7 +469,7 @@ function Game({ setup, onExit, onReview }) {
               <button className="secondary" onClick={() => { if (window.confirm('Resign this game?')) resign() }}>Resign</button>
             </div>
           ) : (
-            <div className="solver-actions">
+            <div className="solver-actions end">
               <button className="big-green" onClick={() => onReview(pgn())}><IconStar size={20} /> Game Review</button>
               <button className="secondary" onClick={() => onExit({ rematch: true })}>Rematch</button>
               <button className="secondary" onClick={() => onExit()}>New bot</button>

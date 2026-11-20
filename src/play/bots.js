@@ -385,6 +385,7 @@ function baitPiece(fenAfter, mover) {
  */
 export async function chooseBotMove(engine, fen, bot, history = null, state = {}) {
   const c = new Chess(fen)
+  state.lastEval = null
   const legal = c.moves({ verbose: true })
   if (legal.length === 1) return legal[0]
   const fromBook = bookMove(bot, history)
@@ -409,6 +410,7 @@ export async function chooseBotMove(engine, fen, bot, history = null, state = {}
   const valid = lines.filter((l) => l.pv?.length)
   if (!valid.length) return pick(legal)
   const best = cpOf(valid[0])
+  state.lastEval = Math.max(-2000, Math.min(2000, best)) // from the bot's side, before its move
   // a forced mate is never thrown away by the stronger bots
   if (valid[0].mate > 0 && bot.rating >= 1000) return toMove(c, valid[0].pv[0])
   const pool = valid.filter((l) => best - cpOf(l) <= bot.margin)

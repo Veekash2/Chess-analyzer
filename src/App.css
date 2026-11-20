@@ -763,3 +763,4 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .theme-menu.board-menu .pc-opt.on, .theme-menu.board-menu .bd-opt.on { border-color: var(--accent); }
 
 .theme-menu.board-menu { z-index: 1000; overflow-y: auto; }
+.bot-game .solver-actions.end { grid-template-columns: 1fr 1fr; } .bot-game .solver-actions.end .secondary { padding: 10px 8px; white-space: nowrap; }
