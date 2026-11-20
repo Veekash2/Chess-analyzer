@@ -1,17 +1,32 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchAllGames, fetchProfile, toRow } from './chessApi'
-import InsightsView from './insights/InsightsView'
-import ReviewView from './review/ReviewView'
 import Mandala from './Mandala'
 import ThemePicker from './ThemePicker'
 import BoardPicker, { PieceFilters, PieceCss } from './BoardPicker'
 import { getRecent, pushRecent, removeRecent } from './recentPlayers'
-import CompareView from './compare/CompareView'
-import PuzzlesView from './puzzles/PuzzlesView'
-import PlayView from './play/PlayView'
-import OpeningsView from './openings/OpeningsView'
 import { usePuzzleStore } from './puzzles/puzzleStore'
 import { addPreGameRatings } from './insights/aggregate'
+
+// Each page is its own download, fetched the first time you open it (and quietly
+// prefetched once the first page is on screen), so the site starts fast on phones.
+const loadInsightsView = () => import('./insights/InsightsView')
+const loadReviewView = () => import('./review/ReviewView')
+const loadCompareView = () => import('./compare/CompareView')
+const loadPuzzlesView = () => import('./puzzles/PuzzlesView')
+const loadPlayView = () => import('./play/PlayView')
+const loadOpeningsView = () => import('./openings/OpeningsView')
+const InsightsView = lazy(loadInsightsView)
+const ReviewView = lazy(loadReviewView)
+const CompareView = lazy(loadCompareView)
+const PuzzlesView = lazy(loadPuzzlesView)
+const PlayView = lazy(loadPlayView)
+const OpeningsView = lazy(loadOpeningsView)
+const PageLoading = () => <div className="card page-loading muted">Loading...</div>
+const Page = ({ children }) => <Suspense fallback={<PageLoading />}>{children}</Suspense>
+if (typeof window !== 'undefined') {
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500))
+  window.addEventListener('load', () => idle(() => [loadInsightsView, loadReviewView, loadCompareView, loadPuzzlesView, loadPlayView, loadOpeningsView].forEach((f) => f())))
+}
 
 const LIMITS = [['all', 'All'], [100, '100'], [200, '200'], [500, '500'], [1000, '1,000'], [2000, '2,000']]
 import './App.css'
@@ -326,10 +341,10 @@ export default function App() {
         </nav>
       )}
 
-      {page === 'review' && <ReviewView key={reviewKey} initialPgn={reviewPgn} username={fetchedFor} rows={rows.filter((r) => r.pgn && r.rules === 'chess')} puzzles={puzzles} onOpenPuzzles={() => { setPage('puzzles'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
-      {page === 'puzzles' && <PuzzlesView store={puzzles} onReview={openReview} />}
-      {page === 'play' && <PlayView onReview={openReview} start={botStart} />}
-      {page === 'openings' && <OpeningsView onPlayOut={(s) => { setBotStart(s); setPage('play') }} />}
+      {page === 'review' && <Page><ReviewView key={reviewKey} initialPgn={reviewPgn} username={fetchedFor} rows={rows.filter((r) => r.pgn && r.rules === 'chess')} puzzles={puzzles} onOpenPuzzles={() => { setPage('puzzles'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
+      {page === 'puzzles' && <Page><PuzzlesView store={puzzles} onReview={openReview} /></Page>}
+      {page === 'play' && <Page><PlayView onReview={openReview} start={botStart} /></Page>}
+      {page === 'openings' && <Page><OpeningsView onPlayOut={(s) => { setBotStart(s); setPage('play') }} /></Page>}
       {!hasData && status !== 'loading' && ['overview', 'insights'].includes(page) && (
         <section className="card welcome">
           <h3>Welcome</h3>
@@ -342,7 +357,7 @@ export default function App() {
         </section>
       )}
 
-      {page === 'compare' && <CompareView me={fetchedFor || null} suggestions={topOpponents} />}
+      {page === 'compare' && <Page><CompareView me={fetchedFor || null} suggestions={topOpponents} /></Page>}
 
       {hasData && !['review', 'compare', 'puzzles', 'play', 'openings'].includes(page) && (
         <>
@@ -386,7 +401,7 @@ export default function App() {
           </div>
 
           {page === 'insights' ? (
-            <InsightsView rows={view} records={records} progress={insProgress} scopeLabel={scopeLabel} onReview={(r) => openReview(r.pgn)} />
+            <Page><InsightsView rows={view} records={records} progress={insProgress} scopeLabel={scopeLabel} onReview={(r) => openReview(r.pgn)} /></Page>
           ) : (<>
           <section className="tiles">
             <div className="tile"><strong>{total.n.toLocaleString()}</strong><span>games</span></div>

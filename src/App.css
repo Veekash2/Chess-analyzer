@@ -790,3 +790,4 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .page-tabs::-webkit-scrollbar { display: none; }
 .page-tab { flex: 0 0 auto; white-space: nowrap; }
 @media (max-width: 640px) { .hero { padding-top: 54px; } }
+.page-loading { margin-top: 16px; padding: 24px; text-align: center; }
