@@ -35,10 +35,10 @@ function targetsFrom(fen, from, attackerColor) {
   const view = c.turn() === attackerColor ? c : nullMove(fen)
   if (!view) return []
   const out = []
-  for (const mv of view.moves({ square: from, verbose: true })) if (mv.captured) out.push({ square: mv.to, type: mv.captured })
+  for (const mv of view.moves({ square: from, verbose: true })) if (mv.captured && mv.captured !== 'k') out.push({ square: mv.to, type: mv.captured })
   // a king in check is "attacked" too, though no move captures it
   const k = kingSquare(c, other(attackerColor))
-  if (k && c.attackers(k, attackerColor).includes(from)) out.push({ square: k, type: 'k' })
+  if (k && c.attackers(k, attackerColor).includes(from) && !out.some((t) => t.square === k)) out.push({ square: k, type: 'k' })
   return out
 }
 

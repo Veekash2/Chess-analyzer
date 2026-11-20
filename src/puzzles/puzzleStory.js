@@ -5,7 +5,8 @@ import { Chess } from 'chess.js'
 import { getEngine } from '../review/engine'
 import { fmtEval, winPct } from '../review/reviewCore'
 import { explainMove } from '../review/explain'
-import { NAME, VAL, moveMotifs, lineSwing, describeMaterial, threats } from '../review/motifs'
+import { NAME, moveMotifs, lineSwing, describeMaterial } from '../review/motifs'
+import { describeChange, describePosition, features, sentence } from './positionTalk'
 
 const flip = (s) => (s.mate != null ? { mate: -s.mate } : { cp: -s.cp })
 const cpOf = (s) => (s.mate != null ? (s.mate > 0 ? 1000 : -1000) : Math.max(-1000, Math.min(1000, s.cp)))
@@ -74,43 +75,42 @@ export async function buildStory(puzzle) {
     captured: played.captured, to: played.to,
   }) || {}
 
-  // --- why your move went wrong
-  // evaluations from YOUR side (+ = good for you), so Black's puzzles read naturally too
-  const evalLine = `Before ${played.san} you were ${evalWords(sBest)} (${fmtEval(sBest)} for you, ${pct(sBest)} winning chances). After it you are ${evalWords(sAfter)} (${fmtEval(sAfter)}, ${pct(sAfter)}).`
-  let wrong = ex.wrong
-  // concrete reasons when no tactic is involved
-  const reasons = []
+  // ----------------------------------------------------------------- the story, in words
+  // Fewer numbers and squares: describe the board, then what the move changed.
+  const plain = (t) => (t || '').replace(/ (on|to) [a-h][1-8]/g, '').replace(/\s+/g, ' ').trim()
+  // "Qf5+ queen fork of..." -> "Qf5+ is a queen fork of..."; verbs ("traps", "pins") stay as they are
+  const says = (san, note) => (/^(knight|bishop|rook|queen|king|pawn) fork|^double check|^discovered|^checkmate|^back-rank/.test(note) ? `${san} is a ${note}` : `${san} ${note}`)
+  const opp = you === 'w' ? 'b' : 'w'
+
+  // 1. the position before your move
+  const pre = describePosition(puzzle.fen, you)
+  const situation = `${sentence(pre.sentences.slice(0, 3))} Overall you were ${evalWords(sBest)} here.`
+
+  // 2. what your move changed (after your opponent's best reply)
+  let reply = null
+  let fenReply = fenAfter
   if (replyLine.length) {
     const r = new Chess(fenAfter)
-    let reply = null
-    try { reply = r.move(replyLine[0]) } catch { /* ignore */ }
-    const opp = you === 'w' ? 'b' : 'w'
-    if (reply) {
-      if (played.san.includes('+') && reply.piece === 'k') reasons.push(`${played.san} is a check that gains nothing: the king simply steps to ${reply.to}, and your ${NAME[played.piece]} on ${played.to} is left ${played.to.match(/[ah]/) || /[18]/.test(played.to) ? 'on the edge, out of play' : 'without a follow-up'}`)
-      // is the piece you moved now loose?
-      const mine = r.get(played.to)
-      if (mine && mine.color === you && VAL[mine.type] >= 3) {
-        const att = r.attackers(played.to, opp)
-        const def = r.attackers(played.to, you)
-        if (att.length && !def.length) reasons.push(`your ${NAME[mine.type]} on ${played.to} is attacked and has no defender`)
-      }
-      // what does your opponent threaten after their reply?
-      const t = threats(r.fen(), opp)
-      if (t.mate) reasons.push(`your opponent now threatens ${t.mate}`)
-      else if (t.win) reasons.push(`your opponent now threatens to win your ${NAME[t.win.type]} on ${t.win.square} with ${t.win.san}`)
-      if (reply.captured && VAL[reply.captured] >= 3 && !wrong) reasons.push(`${reply.san} wins your ${NAME[reply.captured]}`)
-    }
+    try { reply = r.move(replyLine[0]); fenReply = r.fen() } catch { /* ignore */ }
   }
-  if (!wrong && reasons.length) wrong = `${reasons.map((x, i) => (i === 0 ? x[0].toUpperCase() + x.slice(1) : x)).join('; ')}. The engine's main line: ${replyLine.slice(0, 4).join(' ')}.`
-  else if (wrong && reasons.length) wrong += ` Also, ${reasons[0]}.`
-  if (!wrong && replyLine.length) {
-    const swing = lineSwing(fenAfter, replyLine, you)
-    wrong = `The best answer is ${replyLine.slice(0, 4).join(' ')}${swing <= -1 ? `, and you end up ${describeMaterial(swing)} down` : ' and your opponent takes over the initiative'}.`
-  }
-  // what your move gave up: did it walk away from a threat, or ignore one?
-  const missed = moveMotifs(puzzle.fen, bestSan).find((m) => ['fork', 'pin', 'skewer', 'discovered', 'mate', 'trap', 'threat'].includes(m.kind))
+  const changes = describeChange(pre.features, features(fenReply, you))
+  const reasons = []
+  if (reply && played.san.includes('+') && reply.piece === 'k') reasons.push(`your check doesn't achieve anything - the king just steps aside and your ${NAME[played.piece]} is left ${/[ah]/.test(played.to[0]) || /[18]/.test(played.to[1]) ? 'stranded on the edge' : 'with nothing to do'}`)
+  const tactic = ex.wrong && /fork|pin|skewer|discovered|checkmate|traps|double check/.test(ex.wrong) ? plain(ex.wrong) : null
+  // material lost further down the engine's line
+  const cost = lineSwing(puzzle.fen, [played.san, ...replyLine], you) - lineSwing(puzzle.fen, bestLine, you)
+  if (cost <= -1 && !changes.some((x) => x.startsWith('you lose'))) reasons.push(`a few moves later you lose ${describeMaterial(cost)}`)
+  const happened = [...reasons, ...changes].slice(0, 3)
+  let wrong = ''
+  if (tactic) wrong = tactic + (happened.length ? ` ${sentence(happened)}` : '')
+  else if (happened.length) wrong = `After ${played.san}, ${sentence(happened).replace(/^./, (ch) => ch.toLowerCase())}`
+  else wrong = `${played.san} doesn't lose anything straight away, but it wastes time: your opponent gets to improve their position while your pieces stay where they were.`
+  const verdict = evalWords(sAfter) === evalWords(sBest)
+    ? `It isn't a disaster, but it gives away part of your edge.`
+    : `It takes you from ${evalWords(sBest)} to ${evalWords(sAfter)}.`
+  wrong = `${wrong} ${verdict}`
 
-  // --- why the solution works, move by move
+  // 3. why the solution works, move by move
   const steps = []
   let fen = puzzle.fen
   const line = puzzle.solution.length > 1 ? toSan(puzzle.fen, puzzle.solution, 7) : bestLine.slice(0, 3)
@@ -118,19 +118,27 @@ export async function buildStory(puzzle) {
     const motifs = moveMotifs(fen, line[i])
     const top = motifs.find((m) => m.kind !== 'capture') || motifs[0]
     const mine = i % 2 === 0
-    steps.push({ san: line[i], mine, note: top?.text || (mine ? '' : 'the best defence') })
+    steps.push({ san: line[i], mine, note: plain(top?.text) || (mine ? '' : 'the best defence') })
     try { const t = new Chess(fen); t.move(line[i]); fen = t.fen() } catch { break }
   }
-  const sentences = steps.map((st, i) => {
-    if (i === 0) return `${st.san}${st.note ? ` ${st.note}` : ''}`
-    if (!st.mine) return `after ${st.san}${st.note && st.note !== 'the best defence' ? ` (which ${st.note})` : ''}`
-    return `${st.san}${st.note ? ` ${st.note}` : ''}`
-  })
+  const key = steps[0]
   const gain = lineSwing(puzzle.fen, line, you)
-  let why = sentences.length ? `${sentences.join(', ')}.` : ''
-  if (gain >= 1) why += ` In the end you win ${describeMaterial(gain)}.`
-  why += ` With best play you stay ${evalWords(sBest)} (${fmtEval(sBest)} for you) instead of ${evalWords(sAfter)} after your ${played.san}.`
-  const compare = `Your ${played.san} let the advantage slip by ${Math.max(0, Math.round(winPct(sBest) - winPct(sAfter)))} percentage points of winning chances${missed ? `, and missed that ${bestSan} ${missed.text}` : ''}.`
+  const endState = describeChange(pre.features, features(fen, you)).filter((x) => !x.startsWith('you lose'))
+  const good = []
+  if (key?.note) good.push(says(key.san, key.note))
+  else good.push(`${key?.san || bestSan} is the strongest move here`)
+  if (steps.length > 2) good.push(`your opponent's best answer is ${steps[1].san}, and then ${steps[2].note ? says(steps[2].san, steps[2].note) : steps[2].san}`)
+  if (gain >= 1) good.push(`you come out ${describeMaterial(gain)} ahead`)
+  const theirSide = features(fen, you)
+  if (theirSide.theirLoose.length) good.push(`their ${NAME[theirSide.theirLoose[0].type]} is left hanging`)
+  let why = sentence(good)
+  if (!gain && !endState.length) why += ` It keeps the position under control and leaves you ${evalWords(sBest)}.`
+  // 4. your move vs the solution
+  const missed = moveMotifs(puzzle.fen, bestSan).find((m) => ['fork', 'pin', 'skewer', 'discovered', 'mate', 'trap', 'threat'].includes(m.kind))
+  const compare = missed
+    ? `The difference: ${says(bestSan, plain(missed.text))}, while your ${played.san} let your opponent off the hook.`
+    : `The difference: ${bestSan} keeps your pieces working together, while your ${played.san} hands your opponent the easier game.`
+  const evalLine = situation
 
   return { evalLine, wrong, better: ex.better, why, compare, steps, bestLine, replyLine, playedSan: played.san }
 }

@@ -295,8 +295,8 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
             {story === 'loading' && <p className="small muted">Working out what went wrong...</p>}
             {story && story !== 'loading' && (
               <>
-                <p className="small">{story.evalLine}</p>
-                {story.wrong && <p className="small">{story.wrong}</p>}
+                <p className="small"><strong>The position:</strong> {story.evalLine}</p>
+                {story.wrong && <p className="small"><strong>What your move changed:</strong> {story.wrong}</p>}
               </>
             )}
             {!story && puzzle.wrongText && <p className="small">{puzzle.wrongText}</p>}
