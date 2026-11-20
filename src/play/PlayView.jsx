@@ -52,7 +52,7 @@ function BotAvatar({ bot, size = 48 }) {
 }
 
 /* ------------------------------------------------------------------ choose a bot */
-function BotPicker({ onStart }) {
+function BotPicker({ onStart, start }) {
   const [botId, setBotId] = useState(() => { try { return localStorage.getItem('smc-bot-last') || 'haathi' } catch { return 'haathi' } })
   const [color, setColor] = useState('w')
   const [assist, setAssist] = useState(true)
@@ -107,12 +107,13 @@ function BotPicker({ onStart }) {
             <p className="small muted">"{bot.chat.hello[0]}"</p>
           </div>
         </div>
-        <h5>I play as</h5>
-        <div className="tabs chips small-chips" role="radiogroup" aria-label="Your colour">
+        {start && <p className="start-banner small">Continuing from your <strong>{start.opening}</strong> position as {start.color === 'w' ? 'White' : 'Black'}.</p>}
+        {!start && <h5>I play as</h5>}
+        {!start && <div className="tabs chips small-chips" role="radiogroup" aria-label="Your colour">
           {[['w', 'White'], ['random', 'Random'], ['b', 'Black']].map(([k, label]) => (
             <button key={k} role="radio" aria-checked={color === k} className={color === k ? 'tab active' : 'tab'} onClick={() => setColor(k)}>{label}</button>
           ))}
-        </div>
+        </div>}
         <h5>Time control</h5>
         <div className="tc-picker">
           {TIME_CONTROLS.map((g) => (
@@ -129,7 +130,7 @@ function BotPicker({ onStart }) {
           <button className={`tc-btn wide ${tc ? '' : 'on'}`} aria-pressed={!tc} onClick={() => chooseTc(null)}>No clock - take your time</button>
         </div>
         <label className="check small"><input type="checkbox" checked={assist} onChange={(e) => setAssist(e.target.checked)} /> Allow hints and takebacks</label>
-        <button className="big-green" onClick={() => onStart({ bot, color: color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : color, assist, tc })}>
+        <button className="big-green" onClick={() => onStart({ bot, color: start ? start.color : color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : color, assist, tc, startMoves: start?.moves })}>
           <IconStar size={22} /> Play {bot.name}{tc ? ` · ${tcLabel(tc)}` : ''}
         </button>
       </section>
@@ -147,9 +148,10 @@ function Game({ setup, onExit, onReview }) {
   useEffect(() => { const on = () => setVh(window.innerHeight); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on) }, [])
   const size = Math.max(260, Math.min(W, 600, W > 640 ? vh - 190 : Infinity))
 
-  const gameRef = useRef(new Chess())
+  const gameRef = useRef(null)
+  if (!gameRef.current) { const g = new Chess(); for (const m of setup.startMoves || []) g.move(m); gameRef.current = g }
   const [fen, setFen] = useState(gameRef.current.fen())
-  const [history, setHistory] = useState([])
+  const [history, setHistory] = useState(() => gameRef.current.history())
   const [thinking, setThinking] = useState(false)
   const [say, setSay] = useState(() => lineFor(bot, 'hello'))
   const [result, setResult] = useState(null) // { text, winner: 'me'|'bot'|'draw', reason }
@@ -482,14 +484,15 @@ function Game({ setup, onExit, onReview }) {
   )
 }
 
-export default function PlayView({ onReview }) {
+export default function PlayView({ onReview, start }) {
   const [setup, setSetup] = useState(null)
   const [round, setRound] = useState(0)
-  if (!setup) return <BotPicker onStart={(s) => { setSetup(s); setRound((r) => r + 1) }} />
+  useEffect(() => { if (start) setSetup(null) }, [start])
+  if (!setup) return <BotPicker start={start} onStart={(s) => { setSetup(s); setRound((r) => r + 1) }} />
   return (
     <Game key={round} setup={setup} onReview={onReview}
       onExit={(opts) => {
-        if (opts?.rematch) { setSetup({ ...setup, color: setup.color === 'w' ? 'b' : 'w' }); setRound((r) => r + 1) }
+        if (opts?.rematch) { setSetup({ ...setup, color: setup.startMoves ? setup.color : setup.color === 'w' ? 'b' : 'w' }); setRound((r) => r + 1) }
         else setSetup(null)
       }} />
   )

@@ -9,6 +9,7 @@ import { getRecent, pushRecent, removeRecent } from './recentPlayers'
 import CompareView from './compare/CompareView'
 import PuzzlesView from './puzzles/PuzzlesView'
 import PlayView from './play/PlayView'
+import OpeningsView from './openings/OpeningsView'
 import { usePuzzleStore } from './puzzles/puzzleStore'
 import { addPreGameRatings } from './insights/aggregate'
 
@@ -94,6 +95,7 @@ export default function App() {
   )
   // Replay every game in a Web Worker so the page stays responsive
   const [page, setPage] = useState('overview')
+  const [botStart, setBotStart] = useState(null) // opening position to play out against a bot
   const puzzles = usePuzzleStore()
   const [reviewPgn, setReviewPgn] = useState(null)
   const [reviewKey, setReviewKey] = useState(0)
@@ -269,6 +271,7 @@ export default function App() {
           {page !== 'review' && <button className="link-btn hero-alt" onClick={() => openReview(null)}>Review a game from a PGN file →</button>}
           {page !== 'puzzles' && <button className="link-btn hero-alt" onClick={() => setPage('puzzles')}>My puzzles{puzzles.puzzles.length ? ` (${puzzles.puzzles.length})` : ''} →</button>}
           {page !== 'play' && <button className="link-btn hero-alt" onClick={() => setPage('play')}>Play a bot →</button>}
+          {page !== 'openings' && <button className="link-btn hero-alt" onClick={() => setPage('openings')}>Practise openings →</button>}
           {page !== 'compare' && <button className="link-btn hero-alt" onClick={() => setPage('compare')}>Compare friends →</button>}
         </div>
       </header>
@@ -311,9 +314,9 @@ export default function App() {
 
       {status === 'done' && rows.length === 0 && <section className="card"><p>This player has no public games yet.</p></section>}
 
-      {(hasData || ['review', 'compare', 'puzzles', 'play'].includes(page) || puzzles.puzzles.length > 0) && (
+      {(hasData || ['review', 'compare', 'puzzles', 'play', 'openings'].includes(page) || puzzles.puzzles.length > 0) && (
         <nav className="page-tabs" role="tablist">
-          {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review'], ['puzzles', 'Puzzles'], ['play', 'Play bots'], ['compare', 'Compare']].filter(([k]) => hasData || ['review', 'compare', 'puzzles', 'play'].includes(k)).map(([k, label]) => (
+          {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review'], ['puzzles', 'Puzzles'], ['play', 'Play bots'], ['openings', 'Openings'], ['compare', 'Compare']].filter(([k]) => hasData || ['review', 'compare', 'puzzles', 'play', 'openings'].includes(k)).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={page === k} className={page === k ? 'page-tab active' : 'page-tab'} onClick={() => setPage(k)}>
               {label}
               {k === 'puzzles' && puzzles.puzzles.some((p) => p.status !== 'solved') && <span className="badge">{puzzles.puzzles.filter((p) => p.status !== 'solved').length}</span>}
@@ -325,7 +328,8 @@ export default function App() {
 
       {page === 'review' && <ReviewView key={reviewKey} initialPgn={reviewPgn} username={fetchedFor} rows={rows.filter((r) => r.pgn && r.rules === 'chess')} puzzles={puzzles} onOpenPuzzles={() => { setPage('puzzles'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
       {page === 'puzzles' && <PuzzlesView store={puzzles} onReview={openReview} />}
-      {page === 'play' && <PlayView onReview={openReview} />}
+      {page === 'play' && <PlayView onReview={openReview} start={botStart} />}
+      {page === 'openings' && <OpeningsView onPlayOut={(s) => { setBotStart(s); setPage('play') }} />}
       {!hasData && status !== 'loading' && ['overview', 'insights'].includes(page) && (
         <section className="card welcome">
           <h3>Welcome</h3>
@@ -340,7 +344,7 @@ export default function App() {
 
       {page === 'compare' && <CompareView me={fetchedFor || null} suggestions={topOpponents} />}
 
-      {hasData && !['review', 'compare', 'puzzles', 'play'].includes(page) && (
+      {hasData && !['review', 'compare', 'puzzles', 'play', 'openings'].includes(page) && (
         <>
           <div className="toolbar">
             <div className="tabs" role="tablist">

@@ -764,3 +764,24 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 
 .theme-menu.board-menu { z-index: 1000; overflow-y: auto; }
 .bot-game .solver-actions.end { grid-template-columns: 1fr 1fr; } .bot-game .solver-actions.end .secondary { padding: 10px 8px; white-space: nowrap; }
+
+/* ---- opening practice */
+.openings-list { display: grid; gap: 16px; margin-top: 16px; }
+.course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.course-card { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.course-card p { margin: 0; flex: 1; }
+.course-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.lvl { font-size: .7rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink2); white-space: nowrap; }
+.lvl-beginner { color: var(--win); border-color: currentColor; }
+.lvl-intermediate { color: var(--gold); border-color: currentColor; }
+.lvl-advanced { color: var(--loss); border-color: currentColor; }
+.course-progress { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.course-progress span { display: block; height: 100%; background: var(--win); }
+.course-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.big-green.slim { padding: 8px 10px; font-size: .95rem; }
+.course-title { display: grid; gap: 2px; margin-bottom: 8px; }
+.opening-why { margin: 6px 0; padding: 8px 10px; border-left: 3px solid var(--win); background: color-mix(in oklab, var(--win) 10%, transparent); border-radius: 6px; }
+.solver-msg.bad { border-color: var(--loss); color: var(--loss); }
+.start-banner { padding: 8px 10px; border-radius: 8px; background: color-mix(in oklab, var(--accent) 14%, transparent); margin: 6px 0 10px; }
+.opening-trainer .solver-actions.end { grid-template-columns: 1fr 1fr; }
+.opening-trainer .solver-actions.end .big-green { grid-column: 1 / -1; }
