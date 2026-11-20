@@ -759,7 +759,7 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 @media (max-width: 640px) { .pickers { top: 10px; right: 10px; gap: 6px; } .board-picker .theme-btn-label { display: none; } }
 .board-menu .pc-grid, .board-menu .bd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .theme-menu.board-menu .pc-opt, .theme-menu.board-menu .bd-opt { display: grid; justify-items: center; align-content: start; width: auto; min-width: 0; gap: 4px; padding: 6px 4px; text-align: center; }
-.board-picker .board-menu { right: auto; left: 0; }
-@media (max-width: 640px) { .board-picker .board-menu { left: auto; right: -50px; } }
 .theme-menu.board-menu .pc-opt, .theme-menu.board-menu .bd-opt { grid-template-columns: 1fr; border: 1px solid var(--line); background: var(--bg); font-size: .74rem; line-height: 1.2; }
 .theme-menu.board-menu .pc-opt.on, .theme-menu.board-menu .bd-opt.on { border-color: var(--accent); }
+
+.theme-menu.board-menu { z-index: 1000; overflow-y: auto; }

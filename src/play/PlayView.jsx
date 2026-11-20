@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCustomPieces } from '../BoardPicker'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
-import { BOTS, LEVELS, chooseBotMove, getBeaten, markBeaten, materialFor, pick } from './bots'
+import { BOTS, CELEBS, CELEB_GROUP, ALL_BOTS, LEVELS, chooseBotMove, getBeaten, markBeaten, materialFor, pick } from './bots'
 import { getBotEngine } from '../review/engine'
 import Portrait from './Portrait'
 import { useWidth } from '../insights/Visuals'
@@ -57,7 +58,7 @@ function BotPicker({ onStart }) {
   const [tc, setTc] = useState(savedTc)
   const chooseTc = (v) => { setTc(v); try { localStorage.setItem(TC_KEY, JSON.stringify(v)) } catch { /* ignore */ } }
   const beaten = getBeaten()
-  const bot = BOTS.find((b) => b.id === botId) || BOTS[5]
+  const bot = ALL_BOTS.find((b) => b.id === botId) || BOTS[5]
   const choose = (id) => { setBotId(id); try { localStorage.setItem('smc-bot-last', id) } catch { /* ignore */ } }
   return (
     <div className="bot-picker">
@@ -82,6 +83,20 @@ function BotPicker({ onStart }) {
             </div>
           )
         })}
+        <div className="bot-level celeb-level">
+          <h5>{CELEB_GROUP}</h5>
+          <p className="muted small">Fan-made style bots: Stockfish set to each player's approximate rating, playing openings they are known for, with a few of their trademark habits. Not affiliated with them, and the chat lines are made up.</p>
+          <div className="bot-grid">
+            {CELEBS.map((b) => (
+              <button key={b.id} className={`bot-card ${b.id === botId ? 'on' : ''}`} onClick={() => choose(b.id)} aria-pressed={b.id === botId}>
+                <BotAvatar bot={b} size={56} />
+                <span className="bot-name">{b.name}{beaten[b.id] ? <span className="beaten" title={`Beaten ${beaten[b.id]}x`}>★</span> : null}</span>
+                <span className="bot-rating">{b.rating}</span>
+                <span className="bot-tag small">{b.tagline}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
       <section className="card bot-setup">
         <div className="bot-chosen">
@@ -123,6 +138,7 @@ function BotPicker({ onStart }) {
 
 /* ------------------------------------------------------------------ the game */
 function Game({ setup, onExit, onReview }) {
+  const customPieces = useCustomPieces()
   const { bot, color: me, assist, tc } = setup
   const botColor = me === 'w' ? 'b' : 'w'
   const [wrap, W] = useWidth(520)
@@ -142,6 +158,7 @@ function Game({ setup, onExit, onReview }) {
   const [lastMove, setLastMove] = useState(null)
   const [helpUsed, setHelpUsed] = useState(false)
   const reqRef = useRef(0)
+  const trick = useRef({}) // per-game state for one-off bot tricks
 
   // ---- clocks: remaining ms per side; `since` = when the side to move started thinking
   const clk = useRef({ w: tc ? tc[0] * 60000 : 0, b: tc ? tc[0] * 60000 : 0, since: null })
@@ -237,9 +254,10 @@ function Game({ setup, onExit, onReview }) {
       const left = tc ? live(botColor) : Infinity
       // in time trouble the bot calculates less, like a person would
       const depth = left < 5000 ? Math.min(bot.depth, 3) : left < 15000 ? Math.min(bot.depth, 6) : bot.depth
-      const mv = await chooseBotMove(engine, game.fen(), depth === bot.depth ? bot : { ...bot, depth })
+      const mv = await chooseBotMove(engine, game.fen(), depth === bot.depth ? bot : { ...bot, depth }, game.history(), trick.current)
       // a human-ish pause, scaled to the clock: quick in bullet, more thought in rapid
-      const target = !tc ? 450 + Math.random() * 700
+      const target = bot.fast ? 120 + Math.random() * 250
+        : !tc ? 450 + Math.random() * 700
         : clkHist.current.length < 4 ? 300 + Math.random() * 500 // opening moves come fast
           : left < 5000 ? 80
             : Math.min(Math.max(left / 45 + tc[1] * 500, 250), 6000) * (0.5 + Math.random())
@@ -250,7 +268,7 @@ function Game({ setup, onExit, onReview }) {
       punch(botColor)
       setFen(game.fen()); setHistory(game.history()); setLastMove({ from: played.from, to: played.to })
       setThinking(false)
-      if (!finishIfOver()) react(played, true)
+      if (!finishIfOver()) { if (mv.say) setSay(mv.say); else react(played, true) }
     })()
   }, [fen, result]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -363,7 +381,7 @@ function Game({ setup, onExit, onReview }) {
               onPieceDragBegin={(p, sq) => { if (myTurn && p[0] === me) setSel(sq) }} onPieceDragEnd={() => setSel(null)}
               customSquareStyles={styles}
               customArrows={hint ? [[hint.slice(0, 2), hint.slice(2, 4), 'rgba(80,160,60,0.9)']] : []}
-              customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)', backgroundImage: 'var(--rb-light-img, none)' }}
+              customPieces={customPieces} customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)', backgroundImage: 'var(--rb-light-img, none)' }}
               animationDuration={200}
             />
           </div>

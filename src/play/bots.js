@@ -11,8 +11,16 @@ const STRENGTH = {
   1000: [6, 0.09, 140], 1100: [6, 0.07, 120], 1250: [7, 0.05, 100], 1400: [8, 0.04, 80], 1600: [9, 0.025, 55],
   1800: [10, 0.015, 40], 2000: [11, 0.008, 25], 2200: [13, 0.004, 15], 2500: [15, 0.001, 6], 3000: [18, 0, 0],
 }
+function strengthFor(r) {
+  const keys = Object.keys(STRENGTH).map(Number).sort((a, b) => a - b)
+  if (r <= keys[0]) return STRENGTH[keys[0]]
+  if (r >= keys.at(-1)) return STRENGTH[keys.at(-1)]
+  const hi = keys.find((k) => k >= r), lo = keys[keys.indexOf(hi) - 1]
+  const t = (r - lo) / (hi - lo), a = STRENGTH[lo], b = STRENGTH[hi]
+  return [Math.round(a[0] + t * (b[0] - a[0])), a[1] + t * (b[1] - a[1]), Math.round(a[2] + t * (b[2] - a[2]))]
+}
 const bot = (b) => {
-  const [depth, blunder, margin] = STRENGTH[b.rating]
+  const [depth, blunder, margin] = strengthFor(b.rating)
   return { depth, blunder, margin, ...b }
 }
 
@@ -187,6 +195,150 @@ export const BOTS = [
   }),
 ]
 
+
+// ---- Fan-made "style" bots inspired by chess streamers and footballers who play.
+// Ratings are approximate public online ratings; openings follow lines each is known for
+// playing or teaching; chat lines are made up for fun (not real quotes).
+export const CELEB_GROUP = 'Streamers & celebrities'
+export const CELEBS = [
+  bot({
+    id: 'kane', name: 'Harry Kane', rating: 1200, color: '#dc052d', style: 'solid', group: CELEB_GROUP,
+    tagline: 'England & Bayern striker. Says he is about 1200 in 10-minute games and plays to switch off.',
+    look: { skin: 'light', hair: 'short', hairColor: '#8a6a4a', shirt: '#dc052d', mood: 'smile' },
+    book: [
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5', 'c3', 'Nf6', 'd3', 'd6', 'O-O', 'O-O'],
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nf6', 'd3', 'Be7', 'O-O', 'O-O'],
+      ['d4', 'd5', 'c4', 'e6', 'Nc3', 'Nf6'],
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5'],
+    ],
+    chat: {
+      hello: ['Right, quick game before training.', 'Chess helps me switch off. Let us play.'],
+      takes: ['Back of the net!', 'Clinical.'], lost: ['Should have tracked back there.', 'Fair play.'],
+      check: ['Check - shot on target!'], winning: ['We are in control of this one.'], losing: ['Still time for a comeback.'],
+      win: ['Three points!'], loss: ['Good game - you deserved that.'], draw: ['A point each. We go again.'],
+    },
+  }),
+  bot({
+    id: 'olise', name: 'Michael Olise', rating: 1400, color: '#9e0b2b', style: 'prophylactic', group: CELEB_GROUP,
+    tagline: 'Bayern winger and keen player. Quiet, patient, tries to read your plan before you play it.',
+    look: { skin: 'deep', hair: 'short', hairColor: '#111', beard: 'stubble', shirt: '#dc052d', mood: 'calm' },
+    book: [
+      ['d4', 'd5', 'c4', 'e6', 'Nc3', 'Nf6', 'Bg5', 'Be7', 'e3', 'O-O'],
+      ['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'a6'],
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6', 'Ba4', 'Nf6', 'O-O', 'Be7'],
+      ['d4', 'Nf6', 'c4', 'e6', 'Nc3', 'Bb4'],
+    ],
+    chat: {
+      hello: ['...', 'Let us see your plan.'],
+      takes: ['Saw it coming.', 'Mm.'], lost: ['Nice.', 'Okay.'],
+      check: ['Check.'], winning: ['Patience.'], losing: ['Still a long game.'],
+      win: ['Good game.'], loss: ['Well played. Rematch?'], draw: ['Fair result.'],
+    },
+  }),
+  bot({
+    id: 'botez', name: 'Alexandra Botez', rating: 2000, color: '#c2185b', style: 'aggressive', botezGambit: true, group: CELEB_GROUP,
+    tagline: 'Streamer and WFM. Sharp and fun - and yes, the Botez Gambit might happen.',
+    look: { skin: 'light', hair: 'long', hairColor: '#3b2414', earrings: true, shirt: '#c2185b', mood: 'grin' },
+    book: [
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nf6', 'Ng5'],
+      ['e4', 'c5', 'Nf3', 'Nc6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'e5'],
+      ['d4', 'd5', 'Bf4', 'Nf6', 'e3', 'c5', 'c3', 'Nc6'],
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5', 'c3', 'Nf6'],
+    ],
+    chat: {
+      hello: ['Hiii chat! Okay, let us go.', 'Please do not make me Botez Gambit today.'],
+      takes: ['Yoink!', 'Thank you very much!'], lost: ['Okay that was a good move.', 'Wait, what?'],
+      check: ['Check! Spicy.'], winning: ['Chat, I think I am winning!'], losing: ['This is not looking great...'],
+      win: ['GG! Chat, did you see that?'], loss: ['GG, you played really well.'], draw: ['Draw! I will take it.'],
+      botez: ['Botez Gambit! ...I meant to do that.', 'Oh no. Not again. The Botez Gambit strikes.'],
+    },
+  }),
+  bot({
+    id: 'gotham', name: 'GothamChess', rating: 2300, color: '#1f2a44', style: 'aggressive', group: CELEB_GROUP,
+    tagline: 'International Master and the biggest chess YouTuber. London, Vienna and the Caro-Kann.',
+    look: { skin: 'light', hair: 'short', hairColor: '#2b1d14', beard: 'stubble', shirt: '#1f2a44', mood: 'grin' },
+    book: [
+      ['d4', 'd5', 'Bf4', 'Nf6', 'e3', 'e6', 'Nf3', 'c5', 'c3', 'Nc6', 'Nbd2', 'Bd6', 'Bg3'],
+      ['d4', 'Nf6', 'Bf4', 'd5', 'e3', 'c5', 'c3', 'Nc6', 'Nd2', 'e6', 'Ngf3'],
+      ['e4', 'e5', 'Nc3', 'Nf6', 'f4', 'd5', 'fxe5', 'Nxe4', 'Nf3', 'Be7', 'd4'],
+      ['e4', 'e5', 'Nc3', 'Nc6', 'Bc4', 'Nf6', 'd3'],
+      ['e4', 'c6', 'd4', 'd5', 'e5', 'Bf5', 'Nf3', 'e6', 'Be2', 'c5'],
+      ['e4', 'c6', 'd4', 'd5', 'Nc3', 'dxe4', 'Nxe4', 'Bf5', 'Ng3', 'Bg6', 'h4', 'h6'],
+      ['e4', 'c6', 'd4', 'd5', 'exd5', 'cxd5', 'Bd3', 'Nc6', 'c3', 'Nf6'],
+      ['d4', 'd5', 'c4', 'c6', 'Nf3', 'Nf6', 'Nc3', 'dxc4'],
+    ],
+    chat: {
+      hello: ['Welcome back to another bot battle!', 'Alright, let us see what you have got.'],
+      takes: ['And it is just free!', 'He takes!'], lost: ['The rook! ...wait, that was MY rook.', 'Okay, I did not see that.'],
+      check: ['Check! The king has to move!'], winning: ['This is looking really, really good.'], losing: ['Hold on, hold on, hold on...'],
+      win: ['And that is checkmate. Get out of here!'], loss: ['That was a crushing game. Well played.'], draw: ['A draw. Not what we wanted, but we take those.'],
+    },
+  }),
+  bot({
+    id: 'rosen', name: 'Eric Rosen', rating: 2400, color: '#2e7d32', style: 'traps', group: CELEB_GROUP,
+    tagline: 'IM and the king of traps. Stafford Gambit, London, and "oh no, my queen".',
+    look: { skin: 'light', hair: 'short', hairColor: '#6b4a2b', shirt: '#2e7d32', mood: 'smile' },
+    book: [
+      ['e4', 'e5', 'Nf3', 'Nf6', 'Nxe5', 'Nc6', 'Nxc6', 'dxc6', 'd3', 'Bc5', 'Be2', 'h5'],
+      ['e4', 'e5', 'Nf3', 'Nf6', 'Nxe5', 'Nc6', 'Nxc6', 'dxc6', 'Nc3', 'Bc5', 'h3', 'Bxf2+'],
+      ['e4', 'e5', 'Nf3', 'Nf6', 'Nxe5', 'Nc6', 'Nf3', 'Nxe4'],
+      ['e4', 'e5', 'Nf3', 'Nf6', 'Nc3', 'Nc6'],
+      ['d4', 'd5', 'Bf4', 'Nf6', 'e3', 'e6', 'Nd2', 'c5', 'c3', 'Nc6', 'Ngf3', 'Bd6', 'Bg3'],
+      ['d4', 'Nf6', 'Bf4', 'g6', 'Nf3', 'Bg7', 'e3', 'O-O', 'Be2', 'd6', 'h3'],
+      ['e4', 'c5', 'Nf3', 'e6', 'd4', 'cxd4', 'Nxd4', 'Nf6'],
+    ],
+    chat: {
+      hello: ['Hi everyone! Let us have a fun game.', 'Hello! Hopefully nothing tricky happens today...'],
+      takes: ['Oh, thank you!', 'I will take that.'], lost: ['Oh no, my queen!', 'Oh no... oh no.'],
+      check: ['Check!'], winning: ['Things are going rather well.'], losing: ['Hmm, I need a trick here.'],
+      win: ['That was a fun one. Thanks for the game!'], loss: ['Very well played!'], draw: ['A draw - fair enough.'],
+      bait: ['Oh no, my queen!', 'Oh no, my rook... or is it?', 'Hmm, is that piece just hanging?'],
+    },
+  }),
+  bot({
+    id: 'magnus', name: 'Magnus Carlsen', rating: 2850, color: '#0b3d91', style: 'grinder', group: CELEB_GROUP,
+    tagline: 'Five-time world champion. Plays anything, then grinds tiny edges into wins.',
+    look: { skin: 'light', hair: 'short', hairColor: '#7a5a3a', shirt: '#0b3d91', mood: 'calm' },
+    book: [
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'Nf6', 'O-O', 'Nxe4', 'Re1', 'Nd6'],
+      ['e4', 'c5', 'Nf3', 'Nc6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'e5', 'Ndb5', 'd6'],
+      ['Nf3', 'd5', 'g3', 'Nf6', 'Bg2', 'c6', 'O-O'],
+      ['d4', 'Nf6', 'c4', 'e6', 'Nf3', 'd5', 'Nc3', 'Be7'],
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5', 'c3', 'Nf6', 'd3'],
+      ['c4', 'e5', 'g3', 'Nf6', 'Bg2', 'd5'],
+    ],
+    chat: {
+      hello: ['Let us play.', 'Okay.'],
+      takes: ['Mm.'], lost: ['Hm.'], check: ['Check.'], winning: ['It is just a better endgame.'], losing: ['Interesting.'],
+      win: ['Good game.'], loss: ['Well played. Very well played.'], draw: ['Draw.'],
+    },
+  }),
+  bot({
+    id: 'hikaru', name: 'Hikaru', rating: 3000, color: '#5b2a86', style: 'speed', fast: true, group: CELEB_GROUP,
+    tagline: 'Speed chess legend and streamer. Moves instantly - and might even play the Bongcloud.',
+    look: { skin: 'wheat', hair: 'short', hairColor: '#111', shirt: '#5b2a86', mood: 'grin' },
+    book: [
+      ['e4', 'e5', 'Ke2'],
+      ['e4', 'e5', 'Nf3', 'Ke7'],
+      ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'Nf6', 'd3'],
+      ['d4', 'Nf6', 'c4', 'g6', 'Nc3', 'd5', 'cxd5', 'Nxd5'],
+      ['d4', 'Nf6', 'c4', 'g6', 'Nc3', 'Bg7', 'e4', 'd6'],
+      ['Nf3', 'd5', 'g3', 'c5', 'Bg2', 'Nc6'],
+      ['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'a6'],
+      ['d4', 'd5', 'Bf4', 'Nf6', 'e3', 'c5'],
+    ],
+    chat: {
+      hello: ['Let us go, chat! Speedrun.', 'Okay, I am just going to play fast.'],
+      takes: ['And it is just winning.', 'Takes takes takes.'], lost: ['Ah, I just blundered. Whatever.', 'Okay, okay.'],
+      check: ['Check. Easy game.'], winning: ['This is completely winning, chat.'], losing: ['Wait, what? What is this?'],
+      win: ['Easy. Next.'], loss: ['GG. That was actually really well played.'], draw: ['Draw. Okay.'],
+      bongcloud: ['Bongcloud!', 'King to e2. Yes, really.'],
+    },
+  }),
+]
+
+export const ALL_BOTS = [...BOTS, ...CELEBS]
+
 export const pick = (list) => list[Math.floor(Math.random() * list.length)]
 
 /** Score a line from the side to move, in centipawns (mates as big numbers). */
@@ -196,10 +348,58 @@ const cpOf = (l) => (l.mate != null ? (l.mate > 0 ? 100000 - l.mate * 100 : -100
  * Chooses the bot's move. The engine gives its top few lines; weaker bots pick from a wider
  * band of "good enough" moves, sometimes make an outright blunder, and favour their style.
  */
-export async function chooseBotMove(engine, fen, bot) {
+/** Next move from the bot's opening book, if the game so far matches one of its lines. */
+function bookMove(bot, history) {
+  if (!bot.book || !history) return null
+  const lines = bot.book.filter((l) => l.length > history.length && history.every((m, i) => l[i] === m))
+  if (!lines.length) return null
+  const san = pick(lines)[history.length]
+  try { return replay(history, san) } catch { return null }
+}
+function replay(history, san) {
+  const c = new Chess()
+  for (const m of history) c.move(m)
+  return c.move(san)
+}
+
+/** Would this move leave one of the mover's pieces looking "free"? (attacked and undefended,
+ * or attacked by something cheaper) - the bait in a trap. */
+function baitPiece(fenAfter, mover) {
+  const c = new Chess(fenAfter)
+  const opp = mover === 'w' ? 'b' : 'w'
+  let best = null
+  for (const row of c.board()) for (const p of row) {
+    if (!p || p.color !== mover || p.type === 'k' || p.type === 'p') continue
+    const att = c.attackers(p.square, opp)
+    if (!att.length) continue
+    const cheapest = Math.min(...att.map((sq) => VAL[c.get(sq).type]))
+    if (!c.attackers(p.square, mover).length || cheapest < VAL[p.type]) if (!best || VAL[p.type] > VAL[best.type]) best = p
+  }
+  return best
+}
+
+/**
+ * Chooses the bot's move. `history` (SAN list) lets bots follow their opening book;
+ * `state` is a per-game object for one-off tricks (the Botez Gambit). The returned move
+ * may carry `say` - something the bot wants to say about it.
+ */
+export async function chooseBotMove(engine, fen, bot, history = null, state = {}) {
   const c = new Chess(fen)
   const legal = c.moves({ verbose: true })
   if (legal.length === 1) return legal[0]
+  const fromBook = bookMove(bot, history)
+  if (fromBook) {
+    if (fromBook.piece === 'k' && !fromBook.san.startsWith('O') && bot.chat.bongcloud) fromBook.say = pick(bot.chat.bongcloud)
+    return fromBook
+  }
+  // the Botez Gambit: once a game, in the middlegame, leave the queen where it can be taken
+  if (bot.botezGambit && !state.botezDone && history && history.length > 14 && Math.random() < 0.05) {
+    const hang = legal.filter((m) => m.piece === 'q' && !m.captured).find((m) => {
+      const a = new Chess(fen); a.move(m)
+      return a.attackers(m.to, c.turn() === 'w' ? 'b' : 'w').length && !a.isCheck()
+    })
+    if (hang) { state.botezDone = true; hang.say = pick(bot.chat.botez); return hang }
+  }
   if (bot.blunder && Math.random() < bot.blunder) {
     // a "human" blunder: a random legal move that isn't instantly suicidal for very low bots
     const m = pick(legal)
@@ -221,12 +421,27 @@ export async function chooseBotMove(engine, fen, bot) {
     if (bot.style === 'pawns' && m && m.piece === 'p') w *= 2
     if (bot.style === 'trader' && m && m.captured && m.captured !== 'p') w *= 2.5
     if (bot.style === 'positional' && l === valid[0]) w *= 2.5
+    if ((bot.style === 'grinder' || bot.style === 'speed') && l === valid[0]) w *= 6
+    if (bot.style === 'grinder' && m && m.captured && m.captured !== 'p') w *= 1.6 // happy to trade into a better endgame
+    if (bot.style === 'prophylactic' && m && !m.captured && !m.san.includes('+') && l.pv.length > 1) w *= 1.5
+    if (bot.style === 'traps' && m) {
+      const after = new Chess(fen)
+      after.move({ from: m.from, to: m.to, promotion: m.promotion })
+      const bait = baitPiece(after.fen(), m.color)
+      if (bait) { w *= 4; m.bait = bait }
+    }
     if (bot.style === 'best' && l === valid[0]) w *= 1000
     return { m, w }
   }).filter((x) => x.m)
   const total = weighted.reduce((s, x) => s + x.w, 0)
   let r = Math.random() * total
-  for (const x of weighted) { r -= x.w; if (r <= 0) return x.m }
+  for (const x of weighted) {
+    r -= x.w
+    if (r <= 0) {
+      if (x.m.bait && bot.chat.bait) x.m.say = pick(bot.chat.bait)
+      return x.m
+    }
+  }
   return weighted[0]?.m || pick(legal)
 }
 

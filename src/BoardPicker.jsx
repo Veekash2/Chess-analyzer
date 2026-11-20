@@ -2,7 +2,9 @@
 // Pieces are recoloured with SVG "duotone" filters: each piece's dark parts (outline / body)
 // and light parts (body / details) are mapped onto two new colours, so every board in the
 // app (review, puzzles, bots) picks up the set without swapping piece artwork.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { COASTAL } from './pieces/coastal'
 
 const WAVES = 'repeating-linear-gradient(160deg, rgba(255,255,255,0.07) 0 6px, transparent 6px 15px)'
 const GRAIN = 'repeating-linear-gradient(95deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 7px)'
@@ -22,6 +24,7 @@ export const BOARDS = [
 // [darkStop, lightStop] for white pieces and for black pieces. null = original pieces.
 export const PIECE_SETS = [
   { id: 'classic', name: 'Classic', w: null, b: null },
+  { id: 'coastal', name: 'Coastal (illustrated)', w: null, b: null, shaped: COASTAL },
   { id: 'pastel', name: 'Pastel', w: ['#3e2b6e', '#f7b2c8'], b: ['#283a73', '#a9d8ea'] },
   { id: 'royal', name: 'Royal gold', w: ['#5a3d0c', '#ffe08a'], b: ['#4a0f24', '#f2c94c'] },
   { id: 'neon', name: 'Neon', w: ['#00384a', '#8ff7ff'], b: ['#5b0030', '#ff8ab6'], glow: true },
@@ -42,7 +45,21 @@ export function applyBoard({ board, pieces }) {
   root.style.setProperty('--rb-dark-img', b.img || 'none')
   root.style.setProperty('--rb-light-img', b.img || 'none')
   root.dataset.pieces = pieces
+  window.dispatchEvent(new Event('smc-board'))
   try { localStorage.setItem(KEY, JSON.stringify({ board, pieces })) } catch { /* ignore */ }
+}
+
+const NO_PIECES = {}
+/** Custom piece components for react-chessboard (a stable object, so the board doesn't re-render in a loop). */
+export function useCustomPieces() {
+  const read = () => PIECE_SETS.find((s) => s.id === (document.documentElement.dataset.pieces || savedBoard().pieces))?.shaped || NO_PIECES
+  const [pieces, setPieces] = useState(read)
+  useEffect(() => {
+    const on = () => setPieces(read())
+    window.addEventListener('smc-board', on)
+    return () => window.removeEventListener('smc-board', on)
+  }, [])
+  return pieces
 }
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
@@ -99,10 +116,26 @@ export default function BoardPicker() {
   const [pref, setPref] = useState(savedBoard)
   const [open, setOpen] = useState(false)
   const box = useRef(null)
+  const menu = useRef(null)
+  const [pos, setPos] = useState(null)
   useEffect(() => { applyBoard(pref) }, [pref])
+  // The menu lives in a portal with fixed positioning, so the header's rounded, clipped box
+  // can't cut it off. It opens under the button, right-aligned, and stays inside the window.
+  useLayoutEffect(() => {
+    if (!open) return
+    const place = () => {
+      const r = box.current.getBoundingClientRect()
+      const w = Math.min(320, window.innerWidth - 16)
+      const left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))
+      setPos({ top: r.bottom + 8, left, width: w, maxHeight: window.innerHeight - r.bottom - 16 })
+    }
+    place()
+    window.addEventListener('resize', place); window.addEventListener('scroll', place, true)
+    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true) }
+  }, [open])
   useEffect(() => {
     if (!open) return
-    const close = (e) => { if (!box.current?.contains(e.target)) setOpen(false) }
+    const close = (e) => { if (!box.current?.contains(e.target) && !menu.current?.contains(e.target)) setOpen(false) }
     const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('pointerdown', close)
     document.addEventListener('keydown', esc)
@@ -113,14 +146,15 @@ export default function BoardPicker() {
       <button className="theme-btn" onClick={() => setOpen(!open)} aria-expanded={open} title="Board and pieces">
         <BoardIcon /> <span className="theme-btn-label">Board</span>
       </button>
-      {open && (
-        <div className="theme-menu board-menu" role="dialog" aria-label="Board and pieces">
+      {open && pos && createPortal(
+        <div ref={menu} className="theme-menu board-menu" role="dialog" aria-label="Board and pieces" style={{ position: 'fixed', top: pos.top, left: pos.left, right: 'auto', width: pos.width, maxHeight: Math.max(240, pos.maxHeight) }}>
           <h6>Pieces</h6>
           <div className="pc-grid">
             {PIECE_SETS.map((s) => (
               <button key={s.id} className={`pc-opt ${pref.pieces === s.id ? 'on' : ''}`} aria-pressed={pref.pieces === s.id} onClick={() => setPref({ ...pref, pieces: s.id })}>
                 <span className="pc-prev-row" data-pieces={s.id}>
-                  <span className="pc-prev w"><Knight /></span><span className="pc-prev b"><Pawn /></span>
+                  {s.shaped ? <><s.shaped.wN squareWidth={26} /><s.shaped.bP squareWidth={26} /></>
+                    : <><span className="pc-prev w"><Knight /></span><span className="pc-prev b"><Pawn /></span></>}
                 </span>
                 <span>{s.name}</span>
               </button>
@@ -135,7 +169,7 @@ export default function BoardPicker() {
               </button>
             ))}
           </div>
-        </div>
+        </div>, document.body,
       )}
     </div>
   )

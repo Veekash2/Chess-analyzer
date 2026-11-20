@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCustomPieces } from '../BoardPicker'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { ANALYSE_TIPS, THEMES } from './puzzleBuilder'
@@ -90,6 +91,7 @@ function PuzzleList({ store, filter, setFilter, status, setStatus, list, onSolve
 
 /* ------------------------------------------------------------------ solver */
 function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count] }) {
+  const customPieces = useCustomPieces()
   const [wrap, W] = useWidth(480)
   const [vh, setVh] = useState(typeof window !== 'undefined' ? window.innerHeight : 900)
   useEffect(() => { const on = () => setVh(window.innerHeight); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on) }, [])
@@ -276,7 +278,7 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
               onPieceDragBegin={(piece, square) => { if (state === 'solving' && piece[0] === puzzle.color) setSel(square) }}
               onPieceDragEnd={() => setSel(null)}
               customSquareStyles={{ ...squares, ...moveDots }} customArrows={arrows}
-              customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)', backgroundImage: 'var(--rb-light-img, none)' }}
+              customPieces={customPieces} customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }} customLightSquareStyle={{ backgroundColor: 'var(--rb-light)', backgroundImage: 'var(--rb-light-img, none)' }}
               animationDuration={200}
             />
           </div>

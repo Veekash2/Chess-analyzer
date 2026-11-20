@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCustomPieces } from '../BoardPicker'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { IconArrowRight, IconBulb, IconClose, IconFirst, IconFlip, IconLast, IconNext, IconPause, IconPlay, IconPrev, IconRetry, IconStar } from './icons'
@@ -292,6 +293,7 @@ function EvalGraph({ result, ply, onSeek }) {
 
 /* ------------------------------------------------------------------ board + eval bar */
 function BoardArea({ result, ply, flipped, setFlipped, showBest, players, retry }) {
+  const customPieces = useCustomPieces()
   const [wrap, W] = useWidth(480)
   const barW = W < 420 ? 14 : 22
   // fit the width, and on wide screens also the window height (room for player bars + controls)
@@ -353,7 +355,7 @@ function BoardArea({ result, ply, flipped, setFlipped, showBest, players, retry 
             autoPromoteToQueen
             customArrows={arrows}
             customSquareStyles={squareStyles}
-            customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }}
+            customPieces={customPieces} customDarkSquareStyle={{ backgroundColor: 'var(--rb-dark)', backgroundImage: 'var(--rb-dark-img, none)' }}
             customLightSquareStyle={{ backgroundColor: 'var(--rb-light)', backgroundImage: 'var(--rb-light-img, none)' }}
             animationDuration={180}
           />
