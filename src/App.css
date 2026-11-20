@@ -591,3 +591,78 @@ th .p-chip, .h2h .p-chip, .fc-row .p-chip { padding-right: 10px; }
 .learn-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .learn-card p { margin: 4px 0 6px; color: var(--ink2); }
 .learn-links { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: .84rem; font-weight: 600; }
+
+/* ---------- puzzles ---------- */
+.theme-badge { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--maroon); color: var(--gold-soft); font-weight: 800; font-size: .85rem; flex: 0 0 auto; }
+.theme-badge.big { width: 36px; height: 36px; font-size: 1.15rem; box-shadow: 0 0 0 2px var(--gold); }
+.add-puzzles { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.cand-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cand-list li label { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: .86rem; cursor: pointer; }
+.cand-list li.in label { opacity: .65; cursor: default; }
+.check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.add-actions { display: flex; flex-direction: column; gap: 6px; }
+
+.puzzle-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.solve-next { margin: 4px 0 12px; max-width: 420px; }
+.puzzle-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.puzzle-list li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.pl-main { display: flex; flex-direction: column; min-width: 0; }
+.pl-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-actions { display: flex; gap: 6px; }
+.pl-actions button { padding: 7px 12px; }
+.icon-only { padding: 7px 10px !important; font-size: 1.1rem; line-height: 1; }
+.status-pill { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--line); color: var(--ink2); white-space: nowrap; }
+.status-pill.s-solved { background: color-mix(in oklab, var(--peacock) 25%, transparent); color: var(--peacock); }
+.status-pill.s-failed { background: color-mix(in oklab, var(--loss) 22%, transparent); color: var(--loss); }
+.status-pill.s-retried { background: color-mix(in oklab, var(--gold) 25%, transparent); color: var(--ink); }
+.empty-puzzles ol { margin: 6px 0 0; padding-left: 20px; line-height: 1.8; }
+
+.solver-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 16px; }
+.solver-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 16px; margin-top: 12px; align-items: start; }
+.solver-board { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.turn-banner { align-self: stretch; text-align: center; font: 700 1.05rem var(--font-head); padding: 8px; border-radius: 8px; }
+.turn-banner.white { background: #f2f1ed; color: #222; } .turn-banner.black { background: #262421; color: #f2f1ed; border: 1px solid var(--line); }
+.turn-banner.ok { background: #6a9a35; color: #fff; } .turn-banner.bad { background: #c0392b; color: #fff; } .turn-banner.help { background: var(--gold); color: #2b1418; }
+.solver-side { margin-top: 0; display: flex; flex-direction: column; gap: 12px; }
+.puzzle-theme { display: flex; gap: 10px; align-items: center; }
+.puzzle-theme > div { display: flex; flex-direction: column; }
+.solver-msg { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-size: .95rem; min-height: 46px; }
+.solver-msg.solved { border-color: #6a9a35; color: #6a9a35; font-weight: 700; }
+.solver-msg.wrong { border-color: #c0392b; color: #e0605a; font-weight: 700; }
+.solver-msg.good { border-color: #6a9a35; }
+.solver-msg.revealed { border-color: var(--gold); }
+.from-game { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 10px; border-left: 3px solid var(--gold); background: color-mix(in oklab, var(--gold) 8%, transparent); }
+.from-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; font-size: .85rem; font-weight: 600; }
+.solver-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.solver-actions button { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.solver-actions svg { width: 18px; height: 18px; }
+
+@media (max-width: 900px) { .solver-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .puzzle-list li { grid-template-columns: auto 1fr; }
+  .puzzle-list .status-pill { grid-column: 2; justify-self: start; }
+  .pl-actions { grid-column: 1 / -1; }
+  .pl-actions button:first-child { flex: 1; }
+}
+.welcome-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.welcome-grid > * { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-weight: 400; }
+
+/* ---------- matchup preview ---------- */
+.mu-head { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+.mu-vs { font: 700 1rem var(--font-head); color: var(--ink2); }
+.mu-bar { display: flex; height: 22px; gap: 3px; border-radius: 6px; overflow: hidden; }
+.mu-bar span { display: block; min-width: 2px; }
+.mu-odds-labels { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.mu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.mu-open { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.mu-open h5, .matchup h5 { margin: 0 0 6px; font: 700 .92rem var(--font-head); }
+.matchup h5 { margin-top: 14px; }
+.mu-open p { margin: 4px 0; }
+.mu-line { padding-top: 4px; border-top: 1px dashed var(--line); }
+.move-pill { display: inline-block; font: 700 .82rem ui-monospace, Consolas, monospace; padding: 1px 7px; border-radius: 6px; background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--ink); }
+.mu-facts { margin: 0; padding-left: 18px; }
+.mu-edges { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: .88rem; }
+.mu-edges li { display: flex; gap: 8px; align-items: baseline; }
+.mu-edges i { width: 10px; height: 10px; border-radius: 50%; background: var(--pc); flex: 0 0 auto; transform: translateY(1px); }
+@media (max-width: 720px) { .mu-grid { grid-template-columns: 1fr; } }
+.sample-warn { color: var(--loss); font-weight: 600; }

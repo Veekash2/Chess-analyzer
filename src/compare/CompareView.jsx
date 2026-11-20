@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { fetchAllGames, fetchProfile } from '../chessApi'
-import { POOLS, deepCompare, quickCompare } from './compareData'
+import { POOLS, deepCompare, matchup, quickCompare } from './compareData'
 import { WdlBar } from '../insights/Charts'
 import { Chips, XYChart } from '../insights/Visuals'
 
@@ -225,6 +225,83 @@ export default function CompareView({ me, suggestions = [] }) {
   )
 }
 
+function MovePill({ m }) { return <span className="move-pill">{m}</span> }
+
+function OpeningPrediction({ label, white, black, o }) {
+  if (!o) return <div className="mu-open"><h5>{label}</h5><p className="muted small">Not enough games to predict.</p></div>
+  return (
+    <div className="mu-open">
+      <h5>{label}</h5>
+      <p className="small"><strong>{white}</strong> usually opens <MovePill m={`1.${o.first.key}`} /> <span className="muted">({o.first.pct}% of {o.first.of} White games)</span></p>
+      {(o.first.of < 10 || (o.reply && o.sampleReply < 10)) && <p className="small sample-warn">Small sample - pick a longer period or "All" time controls for a better read.</p>}
+      {o.reply ? (
+        <p className="small">Against that, <strong>{black}</strong> usually answers <MovePill m={`1...${o.reply.key}`} /> <span className="muted">({o.reply.pct}% of {o.sampleReply} games)</span></p>
+      ) : <p className="muted small">{black} rarely faces 1.{o.first.key} - expect something new.</p>}
+      {o.named && (
+        <p className="small mu-line">Most likely opening: <strong>{o.named.name}</strong>
+          <span className="muted"> - {white} scores {o.named.white.n ? `${o.named.white.pct}% (${o.named.white.n})` : 'n/a'} in it, {black} {o.named.black.n ? `${o.named.black.pct}% (${o.named.black.n})` : 'n/a'}</span></p>
+      )}
+    </div>
+  )
+}
+
+function Matchup({ players, data }) {
+  const [pair, setPair] = useState('0-1')
+  const pairs = []
+  for (let i = 0; i < players.length; i++) for (let j = i + 1; j < players.length; j++) pairs.push([`${i}-${j}`, `${players[i].username} vs ${players[j].username}`])
+  const [a, b] = pair.split('-').map(Number)
+  const m = useMemo(() => matchup(players, data, a, b), [players, data, a, b])
+  const nA = players[a].username, nB = players[b].username
+  const e = m.expect
+  return (
+    <section className="card matchup">
+      <h3>Matchup preview</h3>
+      <p className="muted small">If these two played a {m.pool} game today - based on current ratings and how each of them usually plays.</p>
+      {pairs.length > 1 && <Chips label="Pair" value={pair} onChange={setPair} options={pairs} />}
+      <div className="mu-head">
+        <PlayerChip name={nA} color={COLORS[a]} />
+        <span className="mu-vs">vs</span>
+        <PlayerChip name={nB} color={COLORS[b]} />
+      </div>
+      {e ? (
+        <div className="mu-odds">
+          <div className="mu-bar" role="img" aria-label={`${nA} wins ${Math.round(e.win * 100)}%, draw ${Math.round(e.draw * 100)}%, ${nB} wins ${Math.round(e.loss * 100)}%`}>
+            <span style={{ flex: e.win, background: COLORS[a] }} />
+            <span style={{ flex: e.draw, background: 'var(--draw)' }} />
+            <span style={{ flex: e.loss, background: COLORS[b] }} />
+          </div>
+          <div className="mu-odds-labels small">
+            <span><strong>{Math.round(e.win * 100)}%</strong> {nA} wins</span>
+            <span><strong>{Math.round(e.draw * 100)}%</strong> draw</span>
+            <span><strong>{Math.round(e.loss * 100)}%</strong> {nB} wins</span>
+          </div>
+          <p className="muted small">Expected score {(e.e * 100).toFixed(0)}-{(100 - e.e * 100).toFixed(0)} for {nA} ({e.ra} vs {e.rb}, Elo formula){m.h2h ? `. Real head-to-head in this period: ${m.h2h.w}W ${m.h2h.d}D ${m.h2h.l}L for ${nA}.` : '.'}</p>
+        </div>
+      ) : <p className="muted small">One of the players has no {m.pool} rating, so no odds.</p>}
+
+      <div className="mu-grid">
+        <OpeningPrediction label={`${nA} with White`} white={nA} black={nB} o={m.aWhite} />
+        <OpeningPrediction label={`${nB} with White`} white={nB} black={nA} o={m.bWhite} />
+      </div>
+
+      <h5>How the game would probably go</h5>
+      <ul className="mu-facts small">
+        {m.length && <li>Typical length: about <strong>{m.length} moves</strong> (their recent average).</li>}
+        {m.likelyEnd && <li>Most likely finish: <strong>{m.likelyEnd[0]}</strong> - {m.endings.map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ')} of their decisive games.</li>}
+      </ul>
+      {m.edges.length > 0 && (
+        <>
+          <h5>Edges</h5>
+          <ul className="mu-edges">
+            {m.edges.map((x) => <li key={x.text} style={{ '--pc': COLORS[x.who] }}><i />{x.text}</li>)}
+          </ul>
+        </>
+      )}
+      <p className="muted small">A prediction from statistics, not a guarantee - chess is played on the board.</p>
+    </section>
+  )
+}
+
 function DeepSection({ players, data, tc, setTc, months }) {
   const { per, ratingSeries, pool, h2h } = data
   const cols = players.length
@@ -276,6 +353,8 @@ function DeepSection({ players, data, tc, setTc, months }) {
           ))}
         </div>
       </section>
+
+      <Matchup players={players} data={data} />
 
       <section className="card">
         <h3>Side by side</h3>

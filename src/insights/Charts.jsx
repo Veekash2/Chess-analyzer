@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { useWidth } from './Visuals'
 
 export const SERIES = { bullet: 'var(--s1)', blitz: 'var(--s2)', rapid: 'var(--s3)', daily: 'var(--s4)' }
 
@@ -66,17 +67,7 @@ export function ScoreColumns({ items, minN = 20, height = 120 }) {
 /** Multi-series rating line chart with a crosshair tooltip. */
 export function RatingChart({ series }) {
   const ref = useRef(null)
-  const wrapRef = useRef(null)
-  const [hoverT, setHoverT] = useState(null)
-  const [width, setWidth] = useState(720)
-  // Draw at the real on-screen width so text stays readable on phones
-  useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([e]) => setWidth(Math.max(260, Math.round(e.contentRect.width))))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
+  const [wrapRef, width] = useWidth(720)
   const all = series.flatMap((s) => s.pts)
   if (!all.length) return <p className="muted">No rated games.</p>
   const W = width, H = W < 520 ? 190 : 230, P = { l: 40, r: 10, t: 12, b: 24 }

@@ -6,9 +6,10 @@ import { CLASSES, COUNT_ORDER, fmtEval, parsePgnText, reviewGame, winPct } from 
 import { getEngine, getOpeningBook } from './engine'
 import { useWidth } from '../insights/Visuals'
 import { playerReport } from './coachReport'
+import { THEMES, buildPuzzles, gameMeta } from '../puzzles/puzzleBuilder'
 
 /* ------------------------------------------------------------------ per-player game report */
-function GameReport({ result, players, headers, onSeek }) {
+function GameReport({ result, players, headers, pgn, onSeek, puzzles, onOpenPuzzles }) {
   const [side, setSide] = useState(players.b.you ? 'b' : 'w')
   const report = useMemo(() => playerReport(result, side, { headers }), [result, side, headers])
   const p = players[side]
@@ -85,6 +86,57 @@ function GameReport({ result, players, headers, onSeek }) {
           <p className="muted small">Practice links open free puzzle sets on Lichess.</p>
         </>
       )}
+      {puzzles && <AddPuzzles key={side} result={result} headers={headers} pgn={pgn} color={side} puzzles={puzzles} onOpenPuzzles={onOpenPuzzles} />}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ turn mistakes into puzzles */
+function AddPuzzles({ result, headers, pgn, color, puzzles, onOpenPuzzles }) {
+  const [withInacc, setWithInacc] = useState(false)
+  const cands = useMemo(() => buildPuzzles(result, headers, pgn, color, { includeInaccuracies: withInacc }), [result, headers, pgn, color, withInacc])
+  const have = new Set(puzzles.puzzles.map((p) => p.id))
+  const [picked, setPicked] = useState(() => new Set())
+  // tick every new candidate by default
+  useEffect(() => { setPicked(new Set(cands.filter((c) => !have.has(c.id)).map((c) => c.id))) }, [cands]) // eslint-disable-line react-hooks/exhaustive-deps
+  const toAdd = cands.filter((c) => picked.has(c.id) && !have.has(c.id))
+  const added = cands.filter((c) => have.has(c.id)).length
+  const toggle = (id) => setPicked((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  if (!cands.length && !withInacc) {
+    return (
+      <div className="add-puzzles">
+        <h5>Practice puzzles</h5>
+        <p className="muted small">No mistakes, misses or blunders for this player - nothing to practise from this game.</p>
+        <label className="small check"><input type="checkbox" checked={withInacc} onChange={(e) => setWithInacc(e.target.checked)} /> Include inaccuracies</label>
+      </div>
+    )
+  }
+  return (
+    <div className="add-puzzles">
+      <h5>Turn your mistakes into puzzles</h5>
+      <p className="muted small">Each puzzle is the position before your move. Your task: find the move you missed. Puzzles keep a link to this game.</p>
+      <ul className="cand-list">
+        {cands.map((c) => {
+          const t = THEMES[c.theme]
+          const isIn = have.has(c.id)
+          return (
+            <li key={c.id} className={isIn ? 'in' : ''}>
+              <label>
+                <input type="checkbox" disabled={isIn} checked={isIn || picked.has(c.id)} onChange={() => toggle(c.id)} />
+                <span className="theme-badge" title={t.label}>{t.icon}</span>
+                <span><strong>Move {c.moveNo}</strong> - you played {c.playedSan} <span className="muted">({c.playedLabel.toLowerCase()})</span><br /><span className="muted small">{t.label}{c.mateIn ? ` · mate in ${c.mateIn}` : ''}{isIn ? ' · already in your list' : ''}</span></span>
+              </label>
+            </li>
+          )
+        })}
+      </ul>
+      <label className="small check"><input type="checkbox" checked={withInacc} onChange={(e) => setWithInacc(e.target.checked)} /> Include inaccuracies</label>
+      <div className="add-actions">
+        <button className="big-green" disabled={!toAdd.length} onClick={() => puzzles.add(toAdd, gameMeta(headers, pgn, color))}>
+          {toAdd.length ? `Add ${toAdd.length} puzzle${toAdd.length > 1 ? 's' : ''} to my list` : added ? 'All added ✓' : 'Select puzzles'}
+        </button>
+        {added > 0 && onOpenPuzzles && <button className="secondary" onClick={onOpenPuzzles}>Open my puzzles ({puzzles.puzzles.length})</button>}
+      </div>
     </div>
   )
 }
@@ -320,7 +372,7 @@ function PlayerBar({ p, extra }) {
 }
 
 /* ------------------------------------------------------------------ side panel */
-function Summary({ result, players, headers, onStart, onSeek, retryCount, onRetryAll }) {
+function Summary({ result, players, headers, pgn, puzzles, onOpenPuzzles, onStart, onSeek, retryCount, onRetryAll }) {
   const { w, b, keyMoments } = result.summary
   const res = players.result
   return (
@@ -373,7 +425,7 @@ function Summary({ result, players, headers, onStart, onSeek, retryCount, onRetr
         </tbody>
       </table>
       <p className="muted small phase-note">{phaseNote(result.moves)}</p>
-      <GameReport result={result} players={players} headers={headers} onSeek={onSeek} />
+      <GameReport result={result} players={players} headers={headers} pgn={pgn} onSeek={onSeek} puzzles={puzzles} onOpenPuzzles={onOpenPuzzles} />
       {keyMoments.length > 0 && (
         <>
           <h4>Key moments</h4>
@@ -485,7 +537,7 @@ function RetryPanel({ retry, mv, onHint, onSolution, onNextRetry, onExit, remain
 }
 
 /* ------------------------------------------------------------------ main view */
-export default function ReviewView({ initialPgn, username, rows }) {
+export default function ReviewView({ initialPgn, username, rows, puzzles, onOpenPuzzles }) {
   const [games, setGames] = useState(null)
   const [gameIdx, setGameIdx] = useState(0)
   const [depth, setDepth] = useState(16)
@@ -679,7 +731,7 @@ export default function ReviewView({ initialPgn, username, rows }) {
                 onHint={retryHint} onSolution={retrySolution} onNextRetry={retryNext}
                 onExit={() => { setRetry(null) }} />
             ) : ply === 0 || !mv ? (
-              <Summary result={result} players={players} headers={game.headers} onStart={() => seek(1)} onSeek={seek}
+              <Summary result={result} players={players} headers={game.headers} pgn={game.pgn} puzzles={puzzles} onOpenPuzzles={onOpenPuzzles} onStart={() => seek(1)} onSeek={seek}
                 retryCount={retryList.length} onRetryAll={() => startRetry(retryList[0], retryList.slice(1))} />
             ) : (
               <>

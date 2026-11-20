@@ -1,0 +1,166 @@
+/* =====================================================================
+   Theme switcher. "indian" is the default (index.css + App.css).
+   Every theme sets the same tokens; a few rules swap the ornaments.
+   ===================================================================== */
+
+/* shared semantic tokens (Indian defaults) */
+:root { --brand-ink: var(--maroon); --hero-ink: #fbefd9; --hero-title: var(--gold-soft); --title-shadow: 0 2px 0 rgba(0,0,0,.25); }
+@media (prefers-color-scheme: dark) { :root { --brand-ink: var(--gold-soft); } }
+.tile strong, .page-tab.active, .rv-title, .est-card strong { color: var(--brand-ink); }
+.hero { color: var(--hero-ink); }
+.hero h1 { color: var(--hero-title); text-shadow: var(--title-shadow); }
+.hero .hero-sub { color: color-mix(in oklab, var(--hero-ink) 88%, transparent); }
+.hero-tag { color: color-mix(in oklab, var(--hero-ink) 80%, transparent) !important; }
+.hero .link-btn { color: var(--hero-title); }
+
+/* ---------------------------------------------------------- theme picker */
+.theme-picker { position: absolute; top: 14px; right: 14px; z-index: 30; }
+.theme-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: .82rem; background: color-mix(in oklab, #000 28%, transparent); color: var(--hero-ink); border: 1px solid color-mix(in oklab, var(--hero-title) 55%, transparent); backdrop-filter: blur(6px); }
+.theme-btn:hover { border-color: var(--hero-title); }
+.theme-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 270px; list-style: none; margin: 0; padding: 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+.theme-menu button { width: 100%; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-align: left; background: transparent; border: 0; color: var(--ink); padding: 8px; border-radius: 10px; font-weight: 400; }
+.theme-menu button:hover, .theme-menu button.on { background: color-mix(in oklab, var(--accent) 14%, transparent); }
+.theme-swatch { display: inline-flex; }
+.theme-swatch i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--surface); margin-left: -5px; box-shadow: 0 0 0 1px var(--line); }
+.theme-swatch i:first-child { margin-left: 0; }
+.theme-text { display: flex; flex-direction: column; line-height: 1.25; }
+.theme-text span { font-size: .75rem; color: var(--ink2); }
+.theme-check { color: var(--accent); font-weight: 800; }
+@media (max-width: 640px) {
+  .theme-picker { top: 10px; right: 10px; }
+  .theme-btn-label { display: none; }
+  .hero-brand { padding-right: 44px; }
+}
+
+/* ornaments that only belong to the Indian theme */
+:root:not([data-theme='indian']) .hero-mandala { display: none; }
+:root:not([data-theme='indian']) .card h3::before { border-radius: 2px; }
+
+/* ===================================================================== CYBERPUNK */
+:root[data-theme='cyberpunk'] {
+  color-scheme: dark;
+  --bg: #0b0118; --surface: #150726; --ink: #f4ecff; --ink2: #b9a6d8; --line: #2f1650;
+  --accent: #ff2a6d; --accent-2: #ff5c8d; --accent-ink: #ffffff;
+  --maroon: #2a0a4a; --maroon-2: #0d0221; --gold: #05d9e8; --gold-soft: #05d9e8; --peacock: #01f5a0;
+  --win: #05d9e8; --draw: #6c5a8a; --loss: #ff2a6d;
+  --s1: #05d9e8; --s2: #ff2a6d; --s3: #01f5a0; --s4: #f9f871;
+  --rb-light: #b8a6ff; --rb-dark: #4b2a86;
+  --brand-ink: #05d9e8; --hero-ink: #f4ecff; --hero-title: #ff2a6d;
+  --title-shadow: 0 0 8px rgba(255, 42, 109, .8), 0 0 24px rgba(255, 42, 109, .45);
+  --font-head: 'Orbitron', 'Rajdhani', sans-serif; --font-body: 'Rajdhani', system-ui, sans-serif; --font-brand: 'Orbitron', sans-serif;
+  font-family: var(--font-body);
+}
+[data-theme='cyberpunk'] body {
+  background-image:
+    linear-gradient(rgba(5, 217, 232, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(5, 217, 232, .06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+[data-theme='cyberpunk'] .hero { background: linear-gradient(120deg, #2a0a4a 0%, #0d0221 55%, #002a3a 100%); box-shadow: 0 0 0 1px #ff2a6d, 0 0 28px rgba(255, 42, 109, .35), inset 0 0 40px rgba(5, 217, 232, .12); }
+[data-theme='cyberpunk'] .hero::before { border-color: rgba(5, 217, 232, .45); border-style: dashed; }
+[data-theme='cyberpunk'] .hero::after { height: 3px; background: linear-gradient(90deg, #ff2a6d, #05d9e8, #01f5a0); opacity: 1; }
+[data-theme='cyberpunk'] .hero h1 { font-weight: 900; letter-spacing: 2px; text-transform: uppercase; font-size: 2rem; }
+[data-theme='cyberpunk'] .hero-logo { filter: hue-rotate(250deg) saturate(1.6); }
+[data-theme='cyberpunk'] .card { border-color: #3a1a66; box-shadow: 0 0 0 1px rgba(5, 217, 232, .12), 0 0 18px rgba(255, 42, 109, .08); }
+[data-theme='cyberpunk'] .card h3::before { background: #ff2a6d; box-shadow: 0 0 10px #ff2a6d; transform: none; border-radius: 2px; }
+[data-theme='cyberpunk'] .big-green, [data-theme='cyberpunk'] .next-btn { background: linear-gradient(90deg, #ff2a6d, #b026ff); box-shadow: 0 0 16px rgba(255, 42, 109, .55); }
+[data-theme='cyberpunk'] .tab.active { background: linear-gradient(90deg, #ff2a6d, #b026ff); box-shadow: 0 0 10px rgba(255, 42, 109, .5); }
+[data-theme='cyberpunk'] .board-wrap { box-shadow: 0 0 0 2px #05d9e8, 0 0 24px rgba(5, 217, 232, .5); }
+[data-theme='cyberpunk'] .coach-avatar { background: #0d0221; color: #05d9e8; box-shadow: 0 0 0 2px #05d9e8, 0 0 12px #05d9e8; }
+[data-theme='cyberpunk'] .toran-line { background: linear-gradient(90deg, #ff2a6d, #05d9e8); height: 2px; }
+
+/* ===================================================================== FUTURISTIC */
+:root[data-theme='futuristic'] {
+  color-scheme: dark;
+  --bg: #060d1c; --surface: rgba(16, 32, 58, .72); --ink: #e6f3ff; --ink2: #9cb6d3; --line: rgba(120, 180, 255, .18);
+  --accent: #3fb8f0; --accent-2: #7dd3fc; --accent-ink: #04111f;
+  --maroon: #0e2240; --maroon-2: #060d1c; --gold: #7dd3fc; --gold-soft: #bfe9ff; --peacock: #34d399;
+  --win: #4cc9f0; --draw: #64748b; --loss: #f97362;
+  --s1: #4cc9f0; --s2: #f97362; --s3: #34d399; --s4: #fbbf24;
+  --rb-light: #dbe7f3; --rb-dark: #5f86ad;
+  --brand-ink: #7dd3fc; --hero-ink: #e6f3ff; --hero-title: #e6f3ff;
+  --title-shadow: 0 0 18px rgba(125, 211, 252, .55);
+  --font-head: 'Exo 2', system-ui, sans-serif; --font-body: 'Exo 2', system-ui, sans-serif; --font-brand: 'Exo 2', sans-serif;
+  font-family: var(--font-body);
+}
+[data-theme='futuristic'] body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(63, 184, 240, .18), transparent 60%),
+    radial-gradient(900px 500px at -10% 30%, rgba(52, 211, 153, .10), transparent 60%),
+    radial-gradient(circle, rgba(125, 211, 252, .10) 1px, transparent 1.5px) 0 0 / 22px 22px,
+    #060d1c;
+  background-attachment: fixed;
+}
+[data-theme='futuristic'] .card, [data-theme='futuristic'] .tile, [data-theme='futuristic'] .tabs { backdrop-filter: blur(10px); }
+[data-theme='futuristic'] .card { box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.35); }
+[data-theme='futuristic'] .hero { background: linear-gradient(135deg, rgba(20, 52, 92, .85), rgba(6, 13, 28, .9)); backdrop-filter: blur(12px); box-shadow: 0 0 0 1px rgba(125, 211, 252, .35), 0 20px 50px rgba(0,0,0,.4); }
+[data-theme='futuristic'] .hero::before { border-color: rgba(125, 211, 252, .25); }
+[data-theme='futuristic'] .hero::after { height: 2px; left: 10%; right: 10%; background: linear-gradient(90deg, transparent, #7dd3fc, transparent); opacity: 1; }
+[data-theme='futuristic'] .hero h1 { font-weight: 700; letter-spacing: 1.5px; }
+[data-theme='futuristic'] .hero-logo { filter: hue-rotate(160deg) saturate(.8) brightness(1.2); }
+[data-theme='futuristic'] .card h3::before { background: #7dd3fc; box-shadow: 0 0 8px #7dd3fc; border-radius: 50%; transform: none; }
+[data-theme='futuristic'] .big-green, [data-theme='futuristic'] .next-btn { background: linear-gradient(90deg, #3fb8f0, #34d399); color: #04111f; box-shadow: 0 0 18px rgba(63, 184, 240, .4); }
+[data-theme='futuristic'] .tab.active { background: linear-gradient(90deg, #3fb8f0, #34d399); color: #04111f; }
+[data-theme='futuristic'] .board-wrap { box-shadow: 0 0 0 1px rgba(125, 211, 252, .6), 0 0 30px rgba(63, 184, 240, .3); border-radius: 6px; }
+[data-theme='futuristic'] .coach-avatar { background: linear-gradient(135deg, #3fb8f0, #34d399); color: #04111f; box-shadow: none; }
+[data-theme='futuristic'] .toran-line { background: linear-gradient(90deg, transparent, #7dd3fc, transparent); height: 1px; }
+
+/* ===================================================================== CLASSIC WOOD */
+:root[data-theme='classic'] {
+  color-scheme: light;
+  --bg: #efe6d6; --surface: #fbf6ec; --ink: #2a1d14; --ink2: #6b5646; --line: #dccbb0;
+  --accent: #8b5a2b; --accent-2: #a8743f; --accent-ink: #ffffff;
+  --maroon: #4a2e1f; --maroon-2: #2e1c12; --gold: #b8892f; --gold-soft: #e8c98a; --peacock: #2f6f4f;
+  --win: #2a78d6; --draw: #b9b8b2; --loss: #eb6834;
+  --rb-light: #f0d9b5; --rb-dark: #b58863;
+  --brand-ink: #4a2e1f; --hero-ink: #f6ead6; --hero-title: #e8c98a;
+  --font-head: 'Playfair Display', Georgia, serif; --font-body: 'Inter', system-ui, sans-serif; --font-brand: 'Playfair Display', Georgia, serif;
+  font-family: var(--font-body);
+}
+[data-theme='classic'] body { background-image: none; }
+[data-theme='classic'] .hero {
+  background: repeating-linear-gradient(95deg, rgba(255,255,255,.03) 0 2px, transparent 2px 9px), linear-gradient(135deg, #5b3a29, #2e1c12);
+  box-shadow: 0 10px 30px rgba(46, 28, 18, .35), inset 0 0 0 1px rgba(232, 201, 138, .4);
+}
+[data-theme='classic'] .hero::after { height: 4px; background: linear-gradient(90deg, #8a6a2f, #e8c98a, #8a6a2f); opacity: .9; }
+[data-theme='classic'] .hero h1 { font-weight: 700; font-style: italic; }
+[data-theme='classic'] .card h3::before { background: var(--gold); border-radius: 2px; }
+[data-theme='classic'] .big-green, [data-theme='classic'] .next-btn { background: linear-gradient(#a8743f, #7a4f25); box-shadow: 0 3px 0 #4a2e1f; }
+[data-theme='classic'] .board-wrap { box-shadow: 0 0 0 6px #4a2e1f, 0 0 0 7px #b8892f, 0 10px 26px rgba(0,0,0,.3); }
+[data-theme='classic'] .toran-line { background: linear-gradient(90deg, transparent, #b8892f, transparent); height: 2px; }
+
+/* ===================================================================== MINIMAL */
+:root[data-theme='minimal'] {
+  color-scheme: light;
+  --bg: #f6f7f9; --surface: #ffffff; --ink: #111827; --ink2: #6b7280; --line: #e5e7eb;
+  --accent: #2563eb; --accent-2: #3b82f6; --accent-ink: #ffffff;
+  --maroon: #111827; --maroon-2: #1f2937; --gold: #2563eb; --gold-soft: #ffffff; --peacock: #059669;
+  --win: #2a78d6; --draw: #b9b8b2; --loss: #eb6834;
+  --rb-light: #f1f5f9; --rb-dark: #94a3b8;
+  --brand-ink: #111827; --hero-ink: #111827; --hero-title: #111827; --title-shadow: none;
+  --font-head: 'Inter', system-ui, sans-serif; --font-body: 'Inter', system-ui, sans-serif; --font-brand: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body);
+}
+[data-theme='minimal'] body { background-image: none; }
+[data-theme='minimal'] .hero { background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.08); border: 1px solid #e5e7eb; }
+[data-theme='minimal'] .hero::before, [data-theme='minimal'] .hero::after { display: none; }
+[data-theme='minimal'] .hero h1 { font-weight: 800; letter-spacing: -.5px; }
+[data-theme='minimal'] .hero .link-btn { color: #2563eb; }
+[data-theme='minimal'] .hero .search input { border-color: #d1d5db; }
+[data-theme='minimal'] .hero .search .secondary { color: #111827; border-color: #d1d5db; }
+[data-theme='minimal'] .theme-btn { background: #f3f4f6; color: #111827; border-color: #e5e7eb; backdrop-filter: none; }
+[data-theme='minimal'] .hero-logo { filter: grayscale(1) brightness(.4); box-shadow: none; }
+[data-theme='minimal'] .card { box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+[data-theme='minimal'] .card h3::before { display: none; }
+[data-theme='minimal'] .big-green, [data-theme='minimal'] .next-btn { background: #2563eb; box-shadow: none; }
+[data-theme='minimal'] .tab.active { background: #2563eb; }
+[data-theme='minimal'] .board-wrap { box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+[data-theme='minimal'] .coach-avatar { background: #111827; color: #fff; box-shadow: none; }
+[data-theme='minimal'] .toran-line { background: #e5e7eb; height: 1px; }
+[data-theme='minimal'] .theme-badge { background: #111827; color: #fff; box-shadow: none; }
+
+/* search box follows the theme */
+[data-theme='cyberpunk'] .hero .search input { background: #0d0221; color: #f4ecff; border-color: #ff2a6d; }
+[data-theme='futuristic'] .hero .search input { background: rgba(6, 13, 28, .7); color: #e6f3ff; border-color: rgba(125, 211, 252, .45); }
+[data-theme='classic'] .hero .search input { background: #fbf6ec; color: #2a1d14; }
+[data-theme='minimal'] .hero .search input { background: #ffffff; color: #111827; }

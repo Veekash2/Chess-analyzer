@@ -1,19 +1,28 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const HOW = { checkmated: 'Checkmate', resigned: 'Resignation', timeout: 'Timeout', abandoned: 'Abandoned', agreed: 'Agreement', repetition: 'Repetition', stalemate: 'Stalemate', insufficient: 'Insufficient material', '50move': '50-move rule', timevsinsufficient: 'Timeout vs insufficient' }
 const fmtDate = (t) => new Date(t).toLocaleDateString()
 
+/**
+ * Width of an element, kept up to date as it resizes.
+ * Returns a *callback ref*, so it also works when the element appears after the
+ * first render (e.g. a board shown only once analysis has finished).
+ */
 export function useWidth(fallback = 600) {
-  const ref = useRef(null)
   const [w, setW] = useState(fallback)
-  useLayoutEffect(() => {
-    if (!ref.current) return
+  const roRef = useRef(null)
+  const ref = useCallback((el) => {
+    roRef.current?.disconnect()
+    roRef.current = null
+    if (!el) return
+    setW(Math.max(240, Math.round(el.getBoundingClientRect().width)))
     const ro = new ResizeObserver(([e]) => setW(Math.max(240, Math.round(e.contentRect.width))))
-    ro.observe(ref.current)
-    return () => ro.disconnect()
+    ro.observe(el)
+    roRef.current = ro
   }, [])
+  useEffect(() => () => roRef.current?.disconnect(), [])
   return [ref, w]
 }
 
