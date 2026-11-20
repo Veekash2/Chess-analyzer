@@ -8,6 +8,7 @@ import { useWidth } from '../insights/Visuals'
 import { playerReport } from './coachReport'
 import { moveMotifs } from './motifs'
 import { THEMES, buildPuzzles, gameMeta } from '../puzzles/puzzleBuilder'
+import { StorageWarning } from '../puzzles/PuzzlesView'
 
 /* ------------------------------------------------------------------ per-player game report */
 function GameReport({ result, players, headers, pgn, onSeek, puzzles, onOpenPuzzles }) {
@@ -100,7 +101,9 @@ function AddPuzzles({ result, headers, pgn, color, puzzles, onOpenPuzzles }) {
   const [picked, setPicked] = useState(() => new Set())
   // tick every new candidate by default
   useEffect(() => { setPicked(new Set(cands.filter((c) => !have.has(c.id)).map((c) => c.id))) }, [cands]) // eslint-disable-line react-hooks/exhaustive-deps
-  const toAdd = cands.filter((c) => picked.has(c.id) && !have.has(c.id))
+  const wanted = cands.filter((c) => picked.has(c.id) && !have.has(c.id))
+  const room = puzzles.room ?? Infinity
+  const toAdd = wanted.slice(0, room) // never go over the list limit
   const added = cands.filter((c) => have.has(c.id)).length
   const toggle = (id) => setPicked((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   if (!cands.length && !withInacc) {
@@ -116,6 +119,12 @@ function AddPuzzles({ result, headers, pgn, color, puzzles, onOpenPuzzles }) {
     <div className="add-puzzles">
       <h5>Turn your mistakes into puzzles</h5>
       <p className="muted small">Each puzzle is the position before your move. Your task: find the move you missed. Puzzles keep a link to this game.</p>
+      <StorageWarning compact />
+      <p className={`small ${room === 0 ? 'storage-full' : room < wanted.length ? 'storage-low' : 'muted'}`}>
+        {room === 0 ? `Your puzzle list is full (${puzzles.max}). Remove some in the Puzzles tab to add more.`
+          : room < wanted.length ? `Only ${room} slot${room === 1 ? '' : 's'} left (limit ${puzzles.max}) - the first ${room} selected will be added.`
+          : `${room} of ${puzzles.max} slots free.`}
+      </p>
       <ul className="cand-list">
         {cands.map((c) => {
           const t = THEMES[c.theme]
@@ -134,7 +143,7 @@ function AddPuzzles({ result, headers, pgn, color, puzzles, onOpenPuzzles }) {
       <label className="small check"><input type="checkbox" checked={withInacc} onChange={(e) => setWithInacc(e.target.checked)} /> Include inaccuracies</label>
       <div className="add-actions">
         <button className="big-green" disabled={!toAdd.length} onClick={() => puzzles.add(toAdd, gameMeta(headers, pgn, color))}>
-          {toAdd.length ? `Add ${toAdd.length} puzzle${toAdd.length > 1 ? 's' : ''} to my list` : added ? 'All added ✓' : 'Select puzzles'}
+          {toAdd.length ? `Add ${toAdd.length} puzzle${toAdd.length > 1 ? 's' : ''} to my list` : room === 0 ? `List full (${puzzles.max})` : added ? 'All added ✓' : 'Select puzzles'}
         </button>
         {added > 0 && onOpenPuzzles && <button className="secondary" onClick={onOpenPuzzles}>Open my puzzles ({puzzles.puzzles.length})</button>}
       </div>

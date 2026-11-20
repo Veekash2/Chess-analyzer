@@ -34,6 +34,15 @@ function PuzzleList({ store, filter, setFilter, status, setStatus, list, onSolve
       </section>
       <section className="card">
         <h3>My puzzles</h3>
+        <StorageWarning />
+        <div className="slots">
+          <div className="slots-bar" role="img" aria-label={`${total} of ${store.max} puzzle slots used`}><span style={{ width: `${(100 * total) / store.max}%` }} className={store.room === 0 ? 'full' : store.room <= 10 ? 'low' : ''} /></div>
+          <span className="small">{total} of {store.max} puzzles saved{store.room === 0 ? ' - your list is full' : ''}</span>
+          {store.puzzles.some((p) => p.status === 'solved') && (
+            <button className="secondary small-btn" onClick={() => { if (window.confirm('Remove every puzzle you solved first try? This cannot be undone.')) store.removeSolved() }}>Remove solved puzzles</button>
+          )}
+        </div>
+        {store.room === 0 && <p className="small storage-full">Your list is full. Remove puzzles you have mastered to make room for new ones.</p>}
         {!total ? (
           <div className="empty-puzzles">
             <p>Your list is empty. Puzzles come from your own mistakes:</p>
@@ -348,6 +357,19 @@ function Solver({ puzzle, store, onNext, onBack, onReview, position: [idx, count
 }
 
 /* ------------------------------------------------------------------ page */
+/** Puzzles are only kept in this browser - say so plainly. */
+export function StorageWarning({ compact = false }) {
+  if (compact) {
+    return <p className="storage-warn small">Saved only in this browser on this device - clearing browser data will delete your puzzles.</p>
+  }
+  return (
+    <div className="storage-warn" role="note">
+      <strong>Your puzzles are saved only in this browser, on this device.</strong>
+      <span className="small">They are not backed up anywhere. They will be lost if you clear your browsing data or cookies, use a private/incognito tab, or open the site in a different browser or app (for example a link opened inside WhatsApp or Instagram). On iPhone and iPad, Safari may also delete them if you don't open the site for 7 days - adding it to your Home Screen helps.</span>
+    </div>
+  )
+}
+
 export default function PuzzlesView({ store, onReview }) {
   const [filter, setFilter] = useState('all')
   const [status, setStatus] = useState('todo')

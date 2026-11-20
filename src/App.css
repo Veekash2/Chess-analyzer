@@ -682,3 +682,15 @@ th .p-chip, .h2h .p-chip, .fc-row .p-chip { padding-right: 10px; }
 .tips-list { margin: 2px 0 0; padding-left: 18px; line-height: 1.5; color: var(--ink2); }
 .sol-steps { margin: 2px 0 4px; padding-left: 20px; line-height: 1.6; }
 .sol-steps li.theirs { color: var(--ink2); }
+
+/* ---------- puzzle storage warning & limit ---------- */
+.storage-warn { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; margin: 4px 0 10px; border-radius: 10px; border: 1px solid color-mix(in oklab, var(--loss) 45%, transparent); border-left: 4px solid var(--loss); background: color-mix(in oklab, var(--loss) 8%, transparent); }
+p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
+.storage-warn .small { color: var(--ink2); }
+.slots { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.slots-bar { flex: 1 1 160px; max-width: 260px; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.slots-bar span { display: block; height: 100%; background: var(--peacock); }
+.slots-bar span.low { background: var(--gold); } .slots-bar span.full { background: var(--loss); }
+.small-btn { padding: 5px 10px; font-size: .8rem; }
+.storage-full { color: var(--loss); font-weight: 600; }
+.storage-low { color: var(--gold); font-weight: 600; }
