@@ -68,6 +68,7 @@ export function ScoreColumns({ items, minN = 20, height = 120 }) {
 export function RatingChart({ series }) {
   const ref = useRef(null)
   const [wrapRef, width] = useWidth(720)
+  const [hoverT, setHoverT] = useState(null) // time under the mouse/finger, for the crosshair
   const all = series.flatMap((s) => s.pts)
   if (!all.length) return <p className="muted">No rated games.</p>
   const W = width, H = W < 520 ? 190 : 230, P = { l: 40, r: 10, t: 12, b: 24 }
