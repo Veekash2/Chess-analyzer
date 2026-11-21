@@ -3,7 +3,7 @@ import { useCustomPieces } from '../BoardPicker'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { IconArrowRight, IconBulb, IconClose, IconFirst, IconFlip, IconLast, IconNext, IconPause, IconPlay, IconPrev, IconRetry, IconSpeaker, IconMute, IconStar } from './icons'
-import { englishVoices, loadVoiceSettings, onVoicesChanged, saveVoiceSettings, speak, speakable, spokenSan, stopSpeaking, voiceLabel, voiceSupported } from './voice'
+import { coachScript, englishVoices, genderOf, loadVoiceSettings, onVoicesChanged, saveVoiceSettings, speak, stopSpeaking, voiceLabel, voiceSupported } from './voice'
 import { CLASSES, COUNT_ORDER, fmtEval, parsePgnText, reviewGame, winPct } from './reviewCore'
 import { getEngine, getOpeningBook } from './engine'
 import { useWidth } from '../insights/Visuals'
@@ -629,8 +629,10 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
   // ---- spoken coach
   const [voice, setVoiceState] = useState(loadVoiceSettings)
   const setVoice = (v) => { setVoiceState(v); saveVoiceSettings(v) }
-  const [voices, setVoices] = useState(() => englishVoices())
-  useEffect(() => onVoicesChanged(() => setVoices(englishVoices())), [])
+  const [allVoices, setAllVoices] = useState(() => englishVoices())
+  useEffect(() => onVoicesChanged(() => setAllVoices(englishVoices())), [])
+  const voices = englishVoices(voice.gender).filter((v) => allVoices.includes(v))
+  const hasGender = (g) => allVoices.some((v) => genderOf(v) === g)
   useEffect(() => () => stopSpeaking(), [])
   const speechRef = useRef(Promise.resolve())
   const [retry, setRetry] = useState(null) // { ply, queue, fen, status, ... }
@@ -785,8 +787,9 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
     if (!voice.on || status !== 'done' || retry || ex) { speechRef.current = Promise.resolve(); return }
     const m = ply > 0 ? result?.moves[ply - 1] : null
     if (!m) { stopSpeaking(); speechRef.current = Promise.resolve(); return }
-    const comment = speakable(m.explain?.text || m.text)
-    speechRef.current = speak(`${spokenSan(m.san)} ${VERDICT[m.cls] || ''}. ${comment}`, voice)
+    const youKnown = players && (players.w?.you || players.b?.you)
+    const line = coachScript(m, { opponent: youKnown && !players[m.color]?.you })
+    speechRef.current = speak(line.text, { ...voice, pitch: line.pitch })
   }, [ply, voice.on, status, retry, ex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -853,11 +856,36 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
           </div>
           <div className="review-right card">
             <h3 className="rv-title">Game Review</h3>
+            {voiceSupported && (
+              <div className="voice-row" role="group" aria-label="Voice coach">
+                <span className="voice-title small"><IconSpeaker /> Voice coach</span>
+                <div className="tabs chips small-chips" role="radiogroup" aria-label="Voice coach on or off">
+                  {[[true, 'On'], [false, 'Off']].map(([on, label]) => (
+                    <button key={label} role="radio" aria-checked={voice.on === on} className={voice.on === on ? 'tab active' : 'tab'}
+                      onClick={() => {
+                        if (on === voice.on) return
+                        if (!on) { stopSpeaking(); setVoice({ ...voice, on: false }); return }
+                        setVoice({ ...voice, on: true })
+                        if (ply === 0) speak("Hi! I'm your coach. Press next and I'll talk you through each move.", voice)
+                      }}>{label}</button>
+                  ))}
+                </div>
+                {voice.on && (
+                  <div className="tabs chips small-chips" role="radiogroup" aria-label="Voice type">
+                    {[['female', 'Female'], ['male', 'Male']].map(([g, label]) => (
+                      <button key={g} role="radio" aria-checked={voice.gender === g} className={voice.gender === g ? 'tab active' : 'tab'}
+                        disabled={allVoices.length > 0 && !hasGender(g)} title={allVoices.length > 0 && !hasGender(g) ? `This device has no ${g} English voice` : `${label} voice`}
+                        onClick={() => { const v = { ...voice, gender: g, voice: '' }; setVoice(v); speak(g === 'female' ? "Hi, I'll be your coach today." : "Hey, I'll be your coach today.", v) }}>{label}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {voice.on && voices.length > 0 && (
               <div className="voice-row">
                 <label className="small muted">Voice
                   <select value={voices.some((v) => v.name === voice.voice) ? voice.voice : voices[0].name}
-                    onChange={(e) => { const v = { ...voice, voice: e.target.value }; setVoice(v); speak('Hi! I will talk you through your game.', v) }}>
+                    onChange={(e) => { const v = { ...voice, voice: e.target.value }; setVoice(v); speak("Hi! I'll talk you through your game.", v) }}>
                     {voices.map((v) => <option key={v.name} value={v.name}>{voiceLabel(v)}</option>)}
                   </select>
                 </label>
