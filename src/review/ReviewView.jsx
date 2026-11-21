@@ -492,8 +492,13 @@ function Coach({ mv, showBest, setShowBest, onNext, onRetry, onExplain }) {
 function MoveList({ result, ply, onSeek }) {
   const ref = useRef(null)
   useEffect(() => {
-    const el = ref.current?.querySelector('.mv.on')
-    if (el) el.scrollIntoView({ block: 'nearest' })
+    // scroll only the list box (scrollIntoView would also scroll the page down to the list on phones)
+    const box = ref.current
+    const el = box?.querySelector('.mv.on')
+    if (!el) return
+    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
+    if (top < box.scrollTop) box.scrollTop = top
+    else if (top + el.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = top + el.offsetHeight - box.clientHeight
   }, [ply])
   const rows = []
   for (let i = 0; i < result.moves.length; i += 2) rows.push([result.moves[i], result.moves[i + 1]])
