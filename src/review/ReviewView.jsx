@@ -3,7 +3,7 @@ import { useCustomPieces } from '../BoardPicker'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { IconArrowRight, IconBulb, IconClose, IconFirst, IconFlip, IconLast, IconNext, IconPause, IconPlay, IconPrev, IconRetry, IconSpeaker, IconMute, IconStar } from './icons'
-import { coachScript, englishVoices, genderOf, loadVoiceSettings, onVoicesChanged, saveVoiceSettings, speak, stopSpeaking, voiceLabel, voiceSupported } from './voice'
+import { ACCENTS, STYLES, accentOf, coachScript, englishVoices, genderOf, loadVoiceSettings, onVoicesChanged, saveVoiceSettings, speak, stopSpeaking, voiceLabel, voiceSupported } from './voice'
 import { CLASSES, COUNT_ORDER, fmtEval, parsePgnText, reviewGame, winPct } from './reviewCore'
 import { getEngine, getOpeningBook } from './engine'
 import { useWidth } from '../insights/Visuals'
@@ -631,8 +631,9 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
   const setVoice = (v) => { setVoiceState(v); saveVoiceSettings(v) }
   const [allVoices, setAllVoices] = useState(() => englishVoices())
   useEffect(() => onVoicesChanged(() => setAllVoices(englishVoices())), [])
-  const voices = englishVoices(voice.gender).filter((v) => allVoices.includes(v))
+  const voices = englishVoices(voice.gender, voice.accent).filter((v) => allVoices.includes(v))
   const hasGender = (g) => allVoices.some((v) => genderOf(v) === g)
+  const hasAccent = (a) => a === 'any' || allVoices.some((v) => accentOf(v) === a)
   useEffect(() => () => stopSpeaking(), [])
   const speechRef = useRef(Promise.resolve())
   const [retry, setRetry] = useState(null) // { ply, queue, fen, status, ... }
@@ -788,8 +789,8 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
     const m = ply > 0 ? result?.moves[ply - 1] : null
     if (!m) { stopSpeaking(); speechRef.current = Promise.resolve(); return }
     const youKnown = players && (players.w?.you || players.b?.you)
-    const line = coachScript(m, { opponent: youKnown && !players[m.color]?.you })
-    speechRef.current = speak(line.text, { ...voice, pitch: line.pitch })
+    const line = coachScript(m, { opponent: youKnown && !players[m.color]?.you, style: voice.style })
+    speechRef.current = speak(line.text, { ...voice, pitch: line.pitch, rate: voice.rate * line.rate })
   }, [ply, voice.on, status, retry, ex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -879,6 +880,26 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+            {voice.on && (
+              <div className="voice-row">
+                <label className="small muted">Accent
+                  <select value={voice.accent} onChange={(e) => {
+                    const v = { ...voice, accent: e.target.value, voice: '' }; setVoice(v)
+                    speak(v.accent === 'IN' ? 'Namaste! Let us look at your game together.' : "Hi! Let's look at your game together.", v)
+                  }}>
+                    {ACCENTS.map(([a, label]) => <option key={a} value={a} disabled={allVoices.length > 0 && !hasAccent(a)}>{label}{allVoices.length > 0 && !hasAccent(a) ? ' (not on this device)' : ''}</option>)}
+                  </select>
+                </label>
+                <label className="small muted">Style
+                  <select value={voice.style} onChange={(e) => {
+                    const v = { ...voice, style: e.target.value }; setVoice(v)
+                    speak({ hype: "Let's go, chat! Time to review this game!", calm: 'Let us calmly go through the game.', coach: "Right, let's go through your game." }[v.style], { ...v, rate: v.rate * (v.style === 'hype' ? 1.12 : v.style === 'calm' ? 0.9 : 1) })
+                  }}>
+                    {STYLES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                  </select>
+                </label>
               </div>
             )}
             {voice.on && voices.length > 0 && (

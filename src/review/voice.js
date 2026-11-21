@@ -7,7 +7,7 @@ const synth = typeof window !== 'undefined' ? window.speechSynthesis : null
 export const voiceSupported = !!synth
 
 export function loadVoiceSettings() {
-  const base = { on: false, gender: 'female', voice: '', rate: 1 }
+  const base = { on: false, gender: 'female', accent: 'any', style: 'coach', voice: '', rate: 1 }
   try { return { ...base, ...JSON.parse(localStorage.getItem(KEY) || '{}') } } catch { return base }
 }
 export function saveVoiceSettings(s) {
@@ -31,22 +31,37 @@ function score(v) {
 }
 
 // Voice names across Windows/Edge, Chrome/Android and Apple, sorted by how they sound.
-const FEMALE = /\b(female|woman|sonia|libby|maisie|abbi|bella|hollie|olivia|leah|aria|jenny|ava|emma|michelle|ana|amber|ashley|cora|elizabeth|jane|nancy|sara|natasha|annette|carly|freya|elsie|tina|clara|emily|hazel|susan|zira|samantha|karen|moira|tessa|serena|fiona|victoria|allison|kate|martha|zoe|catherine|heera|neerja|isabella|joanna|kendra|kimberly|salli|ivy|nicole|raveena|veena|siri female|stephanie|flo|sandy|shelley|grandma|kathy|aditi|kajal|ruth|matilda|lisa|karla)\b/i
-const MALE = /\b(male|man|ryan|thomas|alfie|elliot|ethan|noah|oliver|luke|guy|andrew|brian|christopher|eric|roger|steffan|william|davis|jason|tony|connor|liam|mitchell|ken|duncan|george|david|mark|daniel|arthur|alex|fred|aaron|evan|tom|lee|rishi|prabhat|gordon|james|joey|justin|matthew|russell|stephen|siri male|reed|rocko|eddy|grandpa|ralph|albert|junior|nathan|oskar)\b/i
+const FEMALE = /\b(female|woman|sonia|libby|maisie|abbi|bella|hollie|olivia|leah|aria|jenny|ava|emma|michelle|ana|amber|ashley|cora|elizabeth|jane|nancy|sara|natasha|annette|carly|freya|elsie|tina|clara|emily|hazel|susan|zira|samantha|karen|moira|tessa|serena|fiona|victoria|allison|kate|martha|zoe|catherine|heera|neerja|isha|swara|ananya|lekha|isabella|joanna|kendra|kimberly|salli|ivy|nicole|raveena|veena|siri female|stephanie|flo|sandy|shelley|grandma|kathy|aditi|kajal|ruth|matilda|lisa|karla)\b/i
+const MALE = /\b(male|man|ryan|thomas|alfie|elliot|ethan|noah|oliver|luke|guy|andrew|brian|christopher|eric|roger|steffan|william|davis|jason|tony|connor|liam|mitchell|ken|duncan|george|david|mark|daniel|arthur|alex|fred|aaron|evan|tom|lee|rishi|prabhat|ravi|hemant|kunal|madhur|gordon|james|joey|justin|matthew|russell|stephen|siri male|reed|rocko|eddy|grandpa|ralph|albert|junior|nathan|oskar)\b/i
 export function genderOf(v) {
   const n = v.name.replace(/^(Microsoft|Google|Apple)\s+/i, '')
   if (/\bfemale\b/i.test(n) || (FEMALE.test(n) && !/\bmale\b/i.test(n))) return 'female'
   if (MALE.test(n)) return 'male'
-  if (/^Google (US|UK) English$/i.test(v.name)) return 'female' // Chrome's unnamed default voices
+  if (/^Google (US|UK) English$/i.test(v.name) || /^Google हिन्दी/.test(v.name)) return 'female' // Chrome's unnamed default voices
   return 'unknown'
 }
 
-export function englishVoices(gender) {
+// Accents. Indian also accepts Hindi voices: on Android/Chrome "Google हिन्दी" reads English with an Indian accent.
+export const ACCENTS = [['any', 'Any'], ['IN', 'Indian'], ['GB', 'British'], ['US', 'American'], ['ZA', 'South African'], ['AU', 'Australian']]
+export function accentOf(v) {
+  const l = v.lang.replace('_', '-').toLowerCase()
+  if (l === 'en-in' || l.startsWith('hi')) return 'IN'
+  return { 'en-gb': 'GB', 'en-us': 'US', 'en-za': 'ZA', 'en-au': 'AU' }[l] || 'other'
+}
+
+export function englishVoices(gender, accent) {
   if (!synth) return []
-  const all = synth.getVoices().filter((v) => /^en[-_]/i.test(v.lang) || v.lang === 'en').sort((a, b) => score(b) - score(a))
-  if (!gender || gender === 'any') return all
-  const g = all.filter((v) => genderOf(v) === gender)
-  return g.length ? g : all // device has no voice of that kind - fall back to whatever it has
+  const all = synth.getVoices()
+    .filter((v) => /^en[-_]/i.test(v.lang) || v.lang === 'en' || /^hi[-_]/i.test(v.lang))
+    .sort((a, b) => (accentOf(a) === 'IN' && /^hi/i.test(a.lang) ? -40 : 0) - (accentOf(b) === 'IN' && /^hi/i.test(b.lang) ? -40 : 0) + score(b) - score(a))
+  const english = all.filter((v) => !/^hi/i.test(v.lang))
+  const byG = (list) => (!gender || gender === 'any' ? list : list.filter((v) => genderOf(v) === gender))
+  if (accent && accent !== 'any') {
+    const acc = all.filter((v) => accentOf(v) === accent)
+    if (byG(acc).length) return byG(acc)
+    if (acc.length) return acc // that accent exists, just not in the chosen gender
+  }
+  return byG(english).length ? byG(english) : english // fall back to whatever the device has
 }
 
 /** Calls back whenever the voice list (re)loads - Chrome fills it in asynchronously. */
@@ -59,7 +74,7 @@ export function onVoicesChanged(cb) {
 /** Short, friendly label: "Sonia (UK)" instead of "Microsoft Sonia Online (Natural) - English (United Kingdom)". */
 export function voiceLabel(v) {
   const name = v.name.replace(/^(Microsoft|Google|Apple)\s+/i, '').replace(/\s*\(.*$/, '').replace(/\s+-\s+.*$/, '').replace(/\s+Online$/i, '').trim()
-  const region = { 'en-GB': 'UK', 'en-US': 'US', 'en-ZA': 'South Africa', 'en-AU': 'Australia', 'en-IN': 'India', 'en-IE': 'Ireland', 'en-CA': 'Canada', 'en-NZ': 'NZ' }[v.lang.replace('_', '-')] || v.lang
+  const region = { 'en-GB': 'UK', 'en-US': 'US', 'en-ZA': 'South Africa', 'en-AU': 'Australia', 'en-IN': 'India', 'hi-IN': 'India, Hindi voice', 'en-IE': 'Ireland', 'en-CA': 'Canada', 'en-NZ': 'NZ' }[v.lang.replace('_', '-')] || v.lang
   const nice = score(v) >= 60 ? ' ★' : ''
   return `${name || v.name} (${region})${nice}`
 }
@@ -94,12 +109,12 @@ export function speakable(text) {
 
 let token = 0
 /** Speak text; resolves when finished (or interrupted). Splits into sentences - Chrome cuts off long utterances. */
-export function speak(text, { voice, rate = 1, gender, pitch = 1 } = {}) {
+export function speak(text, { voice, rate = 1, gender, accent, pitch = 1 } = {}) {
   if (!synth || !text) return Promise.resolve()
   const my = ++token
   synth.cancel()
   const parts = text.match(/[^.!?]+[.!?]*/g) || [text]
-  const list = englishVoices(gender)
+  const list = englishVoices(gender, accent)
   const v = list.find((x) => x.name === voice) || list[0]
   return new Promise((resolve) => {
     let i = 0
@@ -142,15 +157,46 @@ const REACT = {
   miss: [['{m}.', 'Ah, you missed a chance here.'], ['Oh, {m}.', 'There was something much better.'], ['{m}.', 'That lets the opportunity slip.']],
   blunder: [['Oh no.', '{m} is a blunder.'], ['Ouch!', '{m}. That one is a blunder.'], ['{m}?', "Oh dear, that's a blunder."]],
 }
+// Original personalities (not imitations of any real streamer).
+const HYPE = {
+  brilliant: [["Let's go!", '{m}!', 'That is absolutely brilliant, chat!'], ['No way!', '{m}! Are you kidding me? Brilliant!'], ['Oh my goodness.', '{m}! Clip it, that is brilliant!']],
+  great: [['Ooh, {m}!', 'Great move, only move, and you found it!'], ['{m}!', 'Huge. That is a great move!']],
+  best: [['{m}.', 'Best move. Easy game.'], ['{m}!', 'Top engine move, love to see it.'], ['Yes!', '{m}, exactly right.'], ['{m}.', 'Clean. The engine approves.']],
+  excellent: [['{m}.', 'Very nice, very nice.'], ['{m}.', 'Solid stuff, chat.']],
+  good: [['{m}.', "It's fine, it's fine."], ['{m}.', 'Playable. Not the best, but playable.']],
+  book: [['{m}.', 'Still in theory, we know this.'], ['{m}.', 'Book move, standard stuff.'], ['{m}.', 'Opening prep, let us go.']],
+  forced: [['{m}.', 'Only move, had to play it.']],
+  inaccuracy: [['Hmm, {m}?', 'Bit of an inaccuracy there.'], ['{m}.', 'Ehh, not quite.']],
+  mistake: [['Oh no, {m}.', 'Chat, that is a mistake.'], ['Wait, what?', '{m}? That is a mistake.']],
+  miss: [['Noo, {m}!', 'You missed it, chat, you missed it!'], ['{m}.', 'There was something way better here!']],
+  blunder: [['Oh no no no.', '{m}. That is a blunder.'], ['What!', '{m}? Blunder! Chat, what is happening?'], ['Oh, it hangs!', '{m} is a blunder.']],
+}
+const CALM = {
+  brilliant: [['{m}.', 'A truly brilliant idea.'], ['{m}.', 'Beautiful. A brilliant move.']],
+  great: [['{m}.', 'A great move. The only one that holds.']],
+  best: [['{m}.', 'The best move.'], ['{m}.', 'Precise. That is best.'], ['{m}.', 'Exactly right.']],
+  excellent: [['{m}.', 'An excellent, sensible move.'], ['{m}.', 'Very good.']],
+  good: [['{m}.', 'A reasonable move.'], ['{m}.', 'Fine, though there was a little better.']],
+  book: [['{m}.', 'A book move.'], ['{m}.', 'Still following theory.']],
+  forced: [['{m}.', 'The only move.']],
+  inaccuracy: [['{m}.', 'A small inaccuracy.'], ['{m}.', 'Slightly imprecise.']],
+  mistake: [['{m}.', 'This is a mistake.'], ['{m}.', 'Unfortunately, a mistake.']],
+  miss: [['{m}.', 'A missed opportunity.']],
+  blunder: [['{m}.', 'Sadly, this is a blunder.'], ['{m}.', 'A serious blunder.']],
+}
+export const STYLES = [['coach', 'Coach'], ['hype', 'Hype streamer'], ['calm', 'Calm GM']]
+const STYLE_LINES = { coach: REACT, hype: HYPE, calm: CALM }
+const STYLE_VOICE = { coach: { rate: 1, pitch: 1 }, hype: { rate: 1.12, pitch: 1.06 }, calm: { rate: 0.9, pitch: 0.97 } }
 const PITCH = { brilliant: 1.08, great: 1.05, blunder: 0.96, mistake: 0.98 }
 const BORING = /^(a standard opening move|book move|standard theory)\.?$/i
 
 /** What to say for one reviewed move. Returns { text, pitch }. */
-export function coachScript(m, { opponent } = {}) {
+export function coachScript(m, { opponent, style = 'coach' } = {}) {
   const seed = (m.ply * 7 + m.san.length) // same line each time you revisit a move, varied across moves
   const spoken = spokenSan(m.san)
-  const react = say(REACT[m.cls] || [['{m}.']], seed).map((t) => t.replace('{m}', spoken))
-  if (opponent && !['brilliant', 'great', 'blunder', 'mistake', 'miss'].includes(m.cls)) react[0] = react[0].replace(/^(Nice|Good stuff|Good)[.,]?\s*/, '')
+  const lines = STYLE_LINES[style] || REACT
+  const react = say(lines[m.cls] || [['{m}.']], seed).map((t) => t.replace('{m}', spoken))
+  if (opponent && !['brilliant', 'great', 'blunder', 'mistake', 'miss'].includes(m.cls)) react[0] = react[0].replace(/^(Nice|Good stuff|Good|Yes!)[.,]?\s*/, '')
   let reason = String(m.explain?.text || m.text || '')
     .replace(/\s*\([^)]*\)/g, '') // "(Qe2 Bf5 Re3 O-O)" engine lines
     .replace(/Engine line:.*$/i, '')
@@ -158,5 +204,6 @@ export function coachScript(m, { opponent } = {}) {
   reason = reason.split(/(?<=[.!?])\s+/).filter((t) => t && !BORING.test(t.trim()) && !new RegExp(`^${m.san.replace(/[+#=]/g, '\\$&')} (is|was) (a |an |the )?(${m.cls}|best|book)`, 'i').test(t.trim())).join(' ')
   reason = speakable(reason).split(/(?<=[.!?])\s+/).map(cap).join(' ')
   const text = [...react, reason].filter(Boolean).join(' ').replace(/\s+([.,!?])/g, '$1')
-  return { text: text.replace(/(^|[.!?]\s+)([a-z])(?![1-8])/g, (_, a, b) => a + b.toUpperCase()), pitch: PITCH[m.cls] || 1 }
+  const sv = STYLE_VOICE[style] || STYLE_VOICE.coach
+  return { text: text.replace(/(^|[.!?]\s+)([a-z])(?![1-8])/g, (_, a, b) => a + b.toUpperCase()), pitch: (PITCH[m.cls] || 1) * sv.pitch, rate: sv.rate }
 }
