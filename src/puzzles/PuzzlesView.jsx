@@ -8,6 +8,7 @@ import { winPct } from '../review/reviewCore'
 import { getEngine } from '../review/engine'
 import { useWidth, Chips } from '../insights/Visuals'
 import { IconArrowRight, IconBulb, IconRetry, IconStar } from '../review/icons'
+import Arena, { ARENA_TABS } from './Arena'
 
 const STATUS = { new: 'New', solved: 'Solved', failed: 'Failed', retried: 'Solved with help' }
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '')
@@ -372,7 +373,7 @@ export function StorageWarning({ compact = false }) {
   )
 }
 
-export default function PuzzlesView({ store, onReview }) {
+function MyPuzzles({ store, onReview }) {
   const [filter, setFilter] = useState('all')
   const [status, setStatus] = useState('todo')
   const [current, setCurrent] = useState(null)
@@ -396,4 +397,24 @@ export default function PuzzlesView({ store, onReview }) {
     return <Solver key={puzzle.id} puzzle={puzzle} store={store} position={[Math.max(0, i), queue.length]} onNext={next} onBack={() => setCurrent(null)} onReview={onReview} />
   }
   return <PuzzleList store={store} filter={filter} setFilter={setFilter} status={status} setStatus={setStatus} list={list} onSolve={start} onReview={onReview} />
+}
+
+/* ------------------------------------------------------------------ page: Chess.com-style modes + your own puzzles */
+const TAB_KEY = 'smc-puzzle-tab'
+export default function PuzzlesView({ store, onReview }) {
+  const [tab, setTab] = useState(() => { try { return localStorage.getItem(TAB_KEY) || 'rated' } catch { return 'rated' } })
+  const choose = (t) => { setTab(t); try { localStorage.setItem(TAB_KEY, t) } catch { /* private mode */ } }
+  const mine = store.puzzles.filter((p) => p.status !== 'solved').length
+  return (
+    <>
+      <div className="tabs chips puzzle-modes" role="tablist" aria-label="Puzzle mode">
+        {[...ARENA_TABS, ['mine', 'From my games']].map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'tab active' : 'tab'} onClick={() => choose(k)}>
+            {label}{k === 'mine' && mine > 0 && <span className="badge">{mine}</span>}
+          </button>
+        ))}
+      </div>
+      {tab === 'mine' ? <MyPuzzles store={store} onReview={onReview} /> : <Arena key={tab} tab={tab} />}
+    </>
+  )
 }
