@@ -82,5 +82,5 @@ export function findLeaks(rows, courses, limit = 3000) {
   return { leaks: list, courses: stats, matched }
 }
 
-/** "5." or "5..." in front of a move. */
-export const moveLabel = (ply) => `${Math.floor(ply / 2) + 1}.${ply % 2 ? '..' : ''}`
+/** "5" (White's 5th move) or "5..." (Black's 5th move). */
+export const moveLabel = (ply) => `${Math.floor(ply / 2) + 1}${ply % 2 ? '...' : ''}`

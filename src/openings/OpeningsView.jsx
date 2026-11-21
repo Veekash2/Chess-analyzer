@@ -81,7 +81,7 @@ function BookLeaks({ rows, username, onDrill }) {
             <li key={`${l.course.id}-${l.ply}-${l.expected.join()}`}>
               <div className="leak-main">
                 <strong>{l.course.name}</strong>
-                <span className="small">Move {moveLabel(l.ply)} you played <b className="bad-move">{l.playedTop[0]}</b>{l.playedTop.length > 1 ? ` (or ${l.playedTop.slice(1, 3).join(', ')})` : ''}; the book move is <b className="good-move">{l.expected.join(' or ')}</b>.</span>
+                <span className="small">On move {moveLabel(l.ply)} you played <b className="bad-move">{l.playedTop[0]}</b>{l.playedTop.length > 1 ? ` (or ${l.playedTop.slice(1, 3).join(', ')})` : ''}; the book move is <b className="good-move">{l.expected.join(' or ')}</b>.</span>
                 <span className="small muted">{l.count} game{l.count === 1 ? '' : 's'}{l.losses ? `, ${l.losses} lost` : ''}{l.last ? ` · last ${l.last.toLocaleDateString()}` : ''}</span>
               </div>
               <button className="secondary slim" onClick={() => onDrill(l)}>Drill it</button>
@@ -186,7 +186,7 @@ function Trainer({ course, mode: startMode, lineIdx: startLine = 0, focus = null
       kind: 'info',
       text: mode === 'learn' ? `Learn: ${l.name}. Follow the green arrows.`
         : mode === 'review' ? `Review: ${l.name}. Play it from memory.`
-          : leak ? `Your games went wrong at move ${moveLabel(leak.ply)}: you played ${leak.playedTop[0]}, the book move is ${leak.expected.join(' or ')}. Play the line from memory.`
+          : leak ? `In your games you went wrong on move ${moveLabel(leak.ply)}: you played ${leak.playedTop[0]}, the book move is ${leak.expected.join(' or ')}. Play the line from memory.`
             : focus != null ? `Practice: ${course.lines[focus].name}, from memory.`
               : `Practice: play ${course.name} from memory. The opponent will mix up its replies.`,
     })
