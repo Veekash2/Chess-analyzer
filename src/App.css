@@ -798,3 +798,36 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .page-tab { flex: 0 0 auto; white-space: nowrap; }
 @media (max-width: 640px) { .hero { padding-top: 54px; } }
 .page-loading { margin-top: 16px; padding: 24px; text-align: center; }
+
+
+/* ---- opening memory: daily review, key ideas, where you left the book */
+.openings-dash { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; margin-bottom: 16px; align-items: start; }
+@media (max-width: 860px) { .openings-dash { grid-template-columns: 1fr; } }
+.openings-dash .card { margin: 0; }
+.review-due .due-head { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.review-due h3, .leaks h3 { margin: 0 0 4px; }
+.due-count { display: grid; justify-items: center; min-width: 64px; padding: 6px 10px; border-radius: 10px; background: color-mix(in oklab, var(--surface) 70%, var(--line)); }
+.due-count strong { font-size: 1.8rem; line-height: 1; }
+.review-due .big-green { width: 100%; margin-top: 8px; }
+.review-due .big-green:disabled { opacity: .55; cursor: default; }
+.due-badge { font-size: .72rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #e3b23c; color: #2a1f00; margin-left: auto; }
+.course-head .due-badge + .lvl { margin-left: 6px; }
+.leak-list { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.leak-list li { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.leak-main { display: grid; gap: 2px; min-width: 0; }
+.leak-list .secondary.slim { flex: 0 0 auto; padding: 6px 12px; }
+.bad-move { color: #e8833a; }
+.good-move { color: #7fae3c; }
+.leak-courses { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.leak-chip { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); }
+.ideas-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 0; margin-top: 4px; }
+.ideas-toggle svg, .ideas-box summary svg { width: 16px; height: 16px; }
+.ideas { margin: 6px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: .88rem; }
+.ideas dt { font-weight: 700; color: var(--muted, inherit); white-space: nowrap; }
+.ideas dd { margin: 0; }
+.ideas.compact { grid-template-columns: 1fr; gap: 0; font-size: .82rem; }
+.ideas.compact dt { margin-top: 6px; }
+.ideas-box { margin: 8px 0; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+.ideas-box summary { cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.review-pos { align-self: center; }
+@media (max-width: 480px) { .ideas { grid-template-columns: 1fr; gap: 0; } .ideas dt { margin-top: 6px; } }

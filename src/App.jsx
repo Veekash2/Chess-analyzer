@@ -351,7 +351,7 @@ export default function App() {
       {page === 'review' && <Page><ReviewView key={reviewKey} initialPgn={reviewPgn} username={fetchedFor} rows={rows.filter((r) => r.pgn && r.rules === 'chess')} puzzles={puzzles} onOpenPuzzles={() => { setPage('puzzles'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
       {page === 'puzzles' && <Page><PuzzlesView store={puzzles} onReview={openReview} /></Page>}
       {page === 'play' && <Page><PlayView onReview={openReview} start={botStart} /></Page>}
-      {page === 'openings' && <Page><OpeningsView onPlayOut={(s) => { setBotStart(s); setPage('play') }} /></Page>}
+      {page === 'openings' && <Page><OpeningsView rows={rows} username={fetchedFor} onPlayOut={(s) => { setBotStart(s); setPage('play') }} /></Page>}
       {!hasData && status !== 'loading' && ['overview', 'insights'].includes(page) && (
         <section className="card welcome">
           <h3>Welcome</h3>
