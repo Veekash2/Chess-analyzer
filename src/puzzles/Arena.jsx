@@ -7,6 +7,7 @@ import { Chess } from 'chess.js'
 import { useCustomPieces } from '../BoardPicker'
 import { useWidth } from '../insights/Visuals'
 import { IconArrowRight, IconBulb, IconRetry, IconStar } from '../review/icons'
+import Drills from './Drills'
 
 /* ------------------------------------------------------------------ data */
 let dataPromise = null
@@ -439,8 +440,12 @@ function Themes({ set, stats, update }) {
 }
 
 /* ------------------------------------------------------------------ hub */
-export const ARENA_TABS = [['rated', 'Puzzles'], ['rush', 'Puzzle Rush'], ['daily', 'Daily'], ['themes', 'Themes']]
+export const ARENA_TABS = [['rated', 'Puzzles'], ['rush', 'Puzzle Rush'], ['daily', 'Daily'], ['themes', 'Themes'], ['drills', 'Drills']]
 export default function Arena({ tab }) {
+  if (tab === 'drills') return <Drills />
+  return <ArenaPuzzles tab={tab} />
+}
+function ArenaPuzzles({ tab }) {
   const [set, err] = usePuzzleSet()
   const [stats, update] = useStats()
   if (err) return <section className="card"><p className="error">Couldn't load the puzzles ({err}). Check your connection and reload.</p></section>
