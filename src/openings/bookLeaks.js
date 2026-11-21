@@ -53,7 +53,7 @@ export function findLeaks(rows, courses, limit = 3000) {
         while (j < lm.length && j < moves.length && lm[j] === moves[j]) j++
         k = Math.max(k, j)
       }
-      if (k >= p.root && (!best || k > best.k)) best = { p, k }
+      if (k >= Math.max(p.root, 2) && (!best || k > best.k)) best = { p, k } // at least 2 moves in, so one shared first move isn't "this opening"
     }
     if (!best) continue
     matched++
