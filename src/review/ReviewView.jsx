@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCustomPieces } from '../BoardPicker'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
-import { IconArrowRight, IconBulb, IconClose, IconFirst, IconFlip, IconLast, IconNext, IconPause, IconPlay, IconPrev, IconRetry, IconStar } from './icons'
+import { IconArrowRight, IconBulb, IconClose, IconFirst, IconFlip, IconLast, IconNext, IconPause, IconPlay, IconPrev, IconRetry, IconSpeaker, IconMute, IconStar } from './icons'
+import { englishVoices, loadVoiceSettings, onVoicesChanged, saveVoiceSettings, speak, speakable, spokenSan, stopSpeaking, voiceLabel, voiceSupported } from './voice'
 import { CLASSES, COUNT_ORDER, fmtEval, parsePgnText, reviewGame, winPct } from './reviewCore'
 import { getEngine, getOpeningBook } from './engine'
 import { useWidth } from '../insights/Visuals'
@@ -625,6 +626,13 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
   const [flipped, setFlipped] = useState(false)
   const [showBest, setShowBest] = useState(false)
   const [playing, setPlaying] = useState(false)
+  // ---- spoken coach
+  const [voice, setVoiceState] = useState(loadVoiceSettings)
+  const setVoice = (v) => { setVoiceState(v); saveVoiceSettings(v) }
+  const [voices, setVoices] = useState(() => englishVoices())
+  useEffect(() => onVoicesChanged(() => setVoices(englishVoices())), [])
+  useEffect(() => () => stopSpeaking(), [])
+  const speechRef = useRef(Promise.resolve())
   const [retry, setRetry] = useState(null) // { ply, queue, fen, status, ... }
   const [ex, setEx] = useState(null) // explain mode: { ply, tab, lines, steps, step }
   const abortRef = useRef(null)
@@ -772,12 +780,24 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
     return () => window.removeEventListener('keydown', onKey)
   }, [status, ply, last, seek, retry])
 
+  // read the coach's comment aloud for each move
+  useEffect(() => {
+    if (!voice.on || status !== 'done' || retry || ex) { speechRef.current = Promise.resolve(); return }
+    const m = ply > 0 ? result?.moves[ply - 1] : null
+    if (!m) { stopSpeaking(); speechRef.current = Promise.resolve(); return }
+    const comment = speakable(m.explain?.text || m.text)
+    speechRef.current = speak(`${spokenSan(m.san)} ${VERDICT[m.cls] || ''}. ${comment}`, voice)
+  }, [ply, voice.on, status, retry, ex]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!playing) return
     if (ply >= last) { setPlaying(false); return }
-    const t = setTimeout(() => setPly((p) => p + 1), 900)
-    return () => clearTimeout(t)
-  }, [playing, ply, last])
+    // with the voice on, wait until the coach has finished talking before the next move
+    let live = true
+    const wait = voice.on ? Promise.all([speechRef.current, new Promise((r) => setTimeout(r, 700))]) : new Promise((r) => setTimeout(r, 900))
+    wait.then(() => { if (live) setPly((p) => p + 1) })
+    return () => { live = false }
+  }, [playing, ply, last, voice.on])
 
   if (!games || status === 'input') {
     return <PgnInput onLoad={loadGames} rows={rows} onPickRow={(r) => loadGames(parsePgnText(r.pgn))} />
@@ -821,10 +841,33 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
               <button className="nav-btn play" onClick={() => { setRetry(null); setPlaying(!playing) }} title={playing ? 'Pause' : 'Play through the game'} aria-label={playing ? 'Pause' : 'Play'}>{playing ? <IconPause /> : <IconPlay />}</button>
               <button className="nav-btn" onClick={() => seek(ply + 1)} disabled={!retry && ply === last} title="Next move (→)" aria-label="Next move"><IconNext /></button>
               <button className="nav-btn" onClick={() => seek(last)} disabled={!retry && ply === last} title="End of game (End)" aria-label="End of game"><IconLast /></button>
+              {voiceSupported && (
+                <button className={`nav-btn ${voice.on ? 'voice-on' : ''}`} aria-pressed={voice.on}
+                  title={voice.on ? 'Voice coach on - tap to mute' : 'Turn on the voice coach (reads the explanations out loud)'}
+                  aria-label={voice.on ? 'Mute voice coach' : 'Turn on voice coach'}
+                  onClick={() => { if (voice.on) { stopSpeaking(); setVoice({ ...voice, on: false }) } else { setVoice({ ...voice, on: true }); if (ply === 0) speak('Voice coach on. Press next to hear each move.', voice) } }}>
+                  {voice.on ? <IconSpeaker /> : <IconMute />}
+                </button>
+              )}
             </div>
           </div>
           <div className="review-right card">
             <h3 className="rv-title">Game Review</h3>
+            {voice.on && voices.length > 0 && (
+              <div className="voice-row">
+                <label className="small muted">Voice
+                  <select value={voices.some((v) => v.name === voice.voice) ? voice.voice : voices[0].name}
+                    onChange={(e) => { const v = { ...voice, voice: e.target.value }; setVoice(v); speak('Hi! I will talk you through your game.', v) }}>
+                    {voices.map((v) => <option key={v.name} value={v.name}>{voiceLabel(v)}</option>)}
+                  </select>
+                </label>
+                <label className="small muted">Speed
+                  <select value={voice.rate} onChange={(e) => setVoice({ ...voice, rate: +e.target.value })}>
+                    {[[0.85, 'Slow'], [1, 'Normal'], [1.15, 'Fast'], [1.35, 'Faster']].map(([r, l]) => <option key={r} value={r}>{l}</option>)}
+                  </select>
+                </label>
+              </div>
+            )}
             {ex && mv ? (
               <ExplainPanel ex={ex} setEx={setEx} mv={mv} onExit={() => setEx(null)} />
             ) : retry && retryMove ? (
