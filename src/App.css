@@ -884,3 +884,24 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .drill-item.done .drill-check { background: #7fae3c; border-color: #7fae3c; color: #fff; }
 .drill-goal { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; margin-bottom: 8px; background: color-mix(in oklab, var(--accent, #7fc35a) 18%, transparent); }
 .drill-moves { max-height: 180px; overflow-y: auto; }
+
+/* ---- lessons */
+.lessons-home { display: grid; gap: 16px; }
+.lessons-home .card { margin: 0; }
+.lesson-course { display: grid; gap: 6px; text-align: left; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.lesson-course:hover { border-color: var(--accent, #7fc35a); }
+.lesson-icon { font-size: 2rem; line-height: 1; }
+.course-hero { display: flex; gap: 14px; align-items: center; margin: 8px 0 12px; }
+.course-hero h3 { margin: 0; }
+.lesson-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.lesson-list .drill-item { width: 100%; }
+.lesson-head { display: grid; gap: 6px; margin-bottom: 8px; }
+.lesson-head .link-btn { justify-self: start; padding: 0; }
+.lesson-dots { display: flex; flex-wrap: wrap; gap: 6px; }
+.lesson-dots .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); background: transparent; padding: 0; cursor: pointer; }
+.lesson-dots .dot.text { border-radius: 3px; }
+.lesson-dots .dot.solved { background: #7fae3c; border-color: #7fae3c; }
+.lesson-dots .dot.on { outline: 2px solid var(--accent, #7fc35a); outline-offset: 2px; }
+.lesson-text h3 { margin: 6px 0; }
+.lesson-text p { line-height: 1.55; }
+.lesson-play .solver-actions svg, .lesson-play p svg { width: 16px; height: 16px; vertical-align: -3px; }

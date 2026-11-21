@@ -15,17 +15,19 @@ const loadCompareView = () => import('./compare/CompareView')
 const loadPuzzlesView = () => import('./puzzles/PuzzlesView')
 const loadPlayView = () => import('./play/PlayView')
 const loadOpeningsView = () => import('./openings/OpeningsView')
+const loadLessonsView = () => import('./lessons/LessonsView')
 const InsightsView = lazy(loadInsightsView)
 const ReviewView = lazy(loadReviewView)
 const CompareView = lazy(loadCompareView)
 const PuzzlesView = lazy(loadPuzzlesView)
 const PlayView = lazy(loadPlayView)
 const OpeningsView = lazy(loadOpeningsView)
+const LessonsView = lazy(loadLessonsView)
 const PageLoading = () => <div className="card page-loading muted">Loading...</div>
 const Page = ({ children }) => <Suspense fallback={<PageLoading />}>{children}</Suspense>
 if (typeof window !== 'undefined') {
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500))
-  window.addEventListener('load', () => idle(() => [loadInsightsView, loadReviewView, loadCompareView, loadPuzzlesView, loadPlayView, loadOpeningsView].forEach((f) => f())))
+  window.addEventListener('load', () => idle(() => [loadInsightsView, loadReviewView, loadCompareView, loadPuzzlesView, loadPlayView, loadOpeningsView, loadLessonsView].forEach((f) => f())))
 }
 
 const LIMITS = [['all', 'All'], [100, '100'], [200, '200'], [500, '500'], [1000, '1,000'], [2000, '2,000']]
@@ -294,6 +296,7 @@ export default function App() {
           {page !== 'puzzles' && <button className="link-btn hero-alt" onClick={() => setPage('puzzles')}>My puzzles{puzzles.puzzles.length ? ` (${puzzles.puzzles.length})` : ''} →</button>}
           {page !== 'play' && <button className="link-btn hero-alt" onClick={() => setPage('play')}>Play a bot →</button>}
           {page !== 'openings' && <button className="link-btn hero-alt" onClick={() => setPage('openings')}>Practise openings →</button>}
+          {page !== 'lessons' && <button className="link-btn hero-alt" onClick={() => setPage('lessons')}>Lessons →</button>}
           {page !== 'compare' && <button className="link-btn hero-alt" onClick={() => setPage('compare')}>Compare friends →</button>}
         </div>
       </header>
@@ -336,9 +339,9 @@ export default function App() {
 
       {status === 'done' && rows.length === 0 && <section className="card"><p>This player has no public games yet.</p></section>}
 
-      {(hasData || ['review', 'compare', 'puzzles', 'play', 'openings'].includes(page) || puzzles.puzzles.length > 0) && (
+      {(hasData || ['review', 'compare', 'puzzles', 'play', 'openings', 'lessons'].includes(page) || puzzles.puzzles.length > 0) && (
         <nav className="page-tabs" role="tablist" ref={tabsRef}>
-          {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review'], ['puzzles', 'Puzzles'], ['play', 'Play bots'], ['openings', 'Openings'], ['compare', 'Compare']].filter(([k]) => hasData || ['review', 'compare', 'puzzles', 'play', 'openings'].includes(k)).map(([k, label]) => (
+          {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review'], ['puzzles', 'Puzzles'], ['play', 'Play bots'], ['openings', 'Openings'], ['lessons', 'Lessons'], ['compare', 'Compare']].filter(([k]) => hasData || ['review', 'compare', 'puzzles', 'play', 'openings', 'lessons'].includes(k)).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={page === k} className={page === k ? 'page-tab active' : 'page-tab'} onClick={() => setPage(k)}>
               {label}
               {k === 'puzzles' && puzzles.puzzles.some((p) => p.status !== 'solved') && <span className="badge">{puzzles.puzzles.filter((p) => p.status !== 'solved').length}</span>}
@@ -351,6 +354,7 @@ export default function App() {
       {page === 'review' && <Page><ReviewView key={reviewKey} initialPgn={reviewPgn} username={fetchedFor} rows={rows.filter((r) => r.pgn && r.rules === 'chess')} puzzles={puzzles} onOpenPuzzles={() => { setPage('puzzles'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
       {page === 'puzzles' && <Page><PuzzlesView store={puzzles} onReview={openReview} /></Page>}
       {page === 'play' && <Page><PlayView onReview={openReview} start={botStart} /></Page>}
+      {page === 'lessons' && <Page><LessonsView /></Page>}
       {page === 'openings' && <Page><OpeningsView rows={rows} username={fetchedFor} onPlayOut={(s) => { setBotStart(s); setPage('play') }} /></Page>}
       {!hasData && status !== 'loading' && ['overview', 'insights'].includes(page) && (
         <section className="card welcome">
@@ -366,7 +370,7 @@ export default function App() {
 
       {page === 'compare' && <Page><CompareView me={fetchedFor || null} suggestions={topOpponents} /></Page>}
 
-      {hasData && !['review', 'compare', 'puzzles', 'play', 'openings'].includes(page) && (
+      {hasData && !['review', 'compare', 'puzzles', 'play', 'openings', 'lessons'].includes(page) && (
         <>
           <div className="toolbar">
             <div className="tabs" role="tablist">
