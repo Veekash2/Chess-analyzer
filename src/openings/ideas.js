@@ -2,7 +2,10 @@
 // setup = where your pieces go, plan = what you're aiming for, break = the pawn move that opens
 // the game for you, watch = the trap or danger to remember.
 
+import { YOUR_IDEAS } from './yourCourses'
+
 export const IDEAS = {
+  ...YOUR_IDEAS,
   // ------------------------------------------------------------------ White
   italian: {
     setup: 'Knight f3, bishop c4 (aiming at f7), pawns c3 + d3, castle short, rook to e1.',

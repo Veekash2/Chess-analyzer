@@ -12,6 +12,7 @@ export const COMMON_NOTES = {
 }
 
 import { MORE_COURSES } from './moreCourses'
+import { YOUR_COURSES } from './yourCourses'
 
 const L = (name, moves) => ({ name, moves: moves.split(' ') })
 
@@ -286,7 +287,7 @@ export const COURSES = [
   },
 ]
 
-COURSES.push(...MORE_COURSES)
+COURSES.push(...MORE_COURSES, ...YOUR_COURSES)
 
 // ---- progress (which lines you have practised without mistakes), kept in this browser
 const KEY = 'smc-openings-v1'

@@ -114,11 +114,12 @@ function CourseList({ onOpen }) {
         <section key={side} className="card">
           <h3>{title}</h3>
           <div className="course-grid">
-            {COURSES.filter((c) => c.side === side).map((c) => {
+            {COURSES.filter((c) => c.side === side).sort((a, b) => (b.yours ? 1 : 0) - (a.yours ? 1 : 0)).map((c) => {
               const done = mastered(progress, c)
               const due = c.lines.filter((l) => srs[srsKey(c.id, l.name)]?.due <= now).length
               return (
-                <div key={c.id} className="course-card">
+                <div key={c.id} className={`course-card ${c.yours ? 'yours' : ''}`}>
+                  {c.yours && <span className="yours-tag">From your games</span>}
                   <div className="course-head">
                     <strong>{c.name}</strong>
                     {due > 0 && <span className="due-badge" title="Lines due for review">{due} due</span>}

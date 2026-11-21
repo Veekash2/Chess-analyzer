@@ -831,3 +831,6 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .ideas-box summary { cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .review-pos { align-self: center; }
 @media (max-width: 480px) { .ideas { grid-template-columns: 1fr; gap: 0; } .ideas dt { margin-top: 6px; } }
+
+.course-card.yours { border-color: color-mix(in oklab, var(--accent, #7fc35a) 55%, var(--line)); }
+.yours-tag { align-self: flex-start; font-size: .7rem; font-weight: 700; letter-spacing: .02em; padding: 2px 8px; border-radius: 999px; background: color-mix(in oklab, var(--accent, #7fc35a) 25%, transparent); }
