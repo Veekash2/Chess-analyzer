@@ -467,7 +467,7 @@ const ARTICLE = { inaccuracy: 'an inaccuracy', mistake: 'a mistake', miss: 'a mi
  * YOUR best reply - never what they should have played instead.
  */
 export function opponentView(mv, oppName = 'Your opponent') {
-  const who = oppName || 'Your opponent'
+  const who = oppName && oppName !== '?' ? oppName : 'Your opponent' // PGNs without names use "?"
   const reply = mv.replyLine?.[0]
   if (mv.cls === 'book') return `${who} played a book move.`
   if (WEAK.includes(mv.cls)) {
