@@ -460,7 +460,44 @@ function Summary({ result, players, headers, pgn, puzzles, onOpenPuzzles, onStar
   )
 }
 
-function Coach({ mv, showBest, setShowBest, onNext, onRetry, onExplain }) {
+const WEAK = ['inaccuracy', 'mistake', 'miss', 'blunder']
+const ARTICLE = { inaccuracy: 'an inaccuracy', mistake: 'a mistake', miss: 'a miss', blunder: 'a blunder' }
+/**
+ * What to say about the OPPONENT's move: what they played and how good it was, then only
+ * YOUR best reply - never what they should have played instead.
+ */
+export function opponentView(mv, oppName = 'Your opponent') {
+  const who = oppName || 'Your opponent'
+  const reply = mv.replyLine?.[0]
+  if (mv.cls === 'book') return `${who} played a book move.`
+  if (WEAK.includes(mv.cls)) {
+    const chance = reply ? ` Your best reply is ${reply}${mv.replyLine.length > 1 ? ` (${mv.replyLine.slice(0, 3).join(' ')})` : ''} - this is your chance to punish it.` : ''
+    return `${who} played ${mv.san}, ${ARTICLE[mv.cls]}.${chance}`
+  }
+  const quality = { brilliant: 'a brilliant move', great: 'a great move', best: 'the best move', excellent: 'an excellent move', good: 'a good move', forced: 'the only move' }[mv.cls] || 'a move'
+  return `${who} played ${mv.san}, ${quality}.${reply ? ` Your best reply is ${reply}.` : ''}`
+}
+
+function Coach({ mv, showBest, setShowBest, onNext, onRetry, onExplain, mine = true, oppName }) {
+  if (!mine) {
+    return (
+      <div className="coach">
+        <div className="coach-avatar" aria-hidden="true">♞</div>
+        <div className="coach-bubble">
+          <div className="coach-head">
+            <ClassIcon cls={mv.cls} size={20} />
+            <strong>{mv.san} {VERDICT[mv.cls]}</strong>
+            <span className={`eval-chip ${mv.evalAfter.mate != null || mv.evalAfter.cp >= 0 ? 'pos' : 'neg'}`}>{fmtEval(mv.evalAfter)}</span>
+          </div>
+          <p>{opponentView(mv, oppName)}</p>
+          <p className="muted small">Opponent's move - the review only explains your own moves.</p>
+        </div>
+        <div className="coach-actions">
+          <button className="next-btn" onClick={onNext}>Next <IconArrowRight /></button>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="coach">
       <div className="coach-avatar" aria-hidden="true">♞</div>
@@ -716,7 +753,9 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
 
   // ---- Retry mode: replay the position before a weak move and let the user find a better one
   const youColor = players?.w.you ? 'w' : players?.b.you ? 'b' : null
-  const retryList = useMemo(() => (result ? result.moves.filter((m) => ['mistake', 'miss', 'blunder'].includes(m.cls) && m.bestUci && (!youColor || m.color === youColor)).map((m) => m.ply) : []), [result, youColor]) // eslint-disable-line react-hooks/exhaustive-deps
+  // whose review this is: your username, or (pasted PGN) the side at the bottom of the board
+  const reviewer = youColor || (flipped ? 'b' : 'w')
+  const retryList = useMemo(() => (result ? result.moves.filter((m) => ['mistake', 'miss', 'blunder'].includes(m.cls) && m.bestUci && m.color === reviewer).map((m) => m.ply) : []), [result, reviewer]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const startRetry = useCallback((p, queue = []) => {
     const m = result.moves[p - 1]
@@ -789,7 +828,8 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
     const m = ply > 0 ? result?.moves[ply - 1] : null
     if (!m) { stopSpeaking(); speechRef.current = Promise.resolve(); return }
     const youKnown = players && (players.w?.you || players.b?.you)
-    const line = coachScript(m, { opponent: youKnown && !players[m.color]?.you, style: voice.style })
+    const mineMove = m.color === (youKnown ? (players.w.you ? 'w' : 'b') : (flipped ? 'b' : 'w'))
+    const line = coachScript(m, { opponent: !mineMove, style: voice.style, reason: mineMove ? null : opponentView(m, players?.[m.color]?.name) })
     speechRef.current = speak(line.text, { ...voice, pitch: line.pitch, rate: voice.rate * line.rate })
   }, [ply, voice.on, status, retry, ex]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -837,7 +877,7 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
       {status === 'done' && result && (
         <div className="review-layout">
           <div className="review-left">
-            <BoardArea result={result} ply={ply} flipped={flipped} setFlipped={setFlipped} showBest={showBest} players={players}
+            <BoardArea result={result} ply={ply} flipped={flipped} setFlipped={setFlipped} showBest={showBest && mv?.color === reviewer} players={players}
               retry={(retry && { ...retry, draggable: retry.status === 'thinking', onDrop: onRetryDrop }) || exBoard} />
             <div className="review-controls" role="toolbar" aria-label="Move navigation">
               <button className="nav-btn" onClick={() => seek(0)} disabled={!retry && ply === 0} title="Start of game (Home)" aria-label="Start of game"><IconFirst /></button>
@@ -929,6 +969,7 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
             ) : (
               <>
                 <Coach mv={mv} showBest={showBest} setShowBest={setShowBest} onNext={() => seek(ply + 1)}
+                  mine={mv.color === reviewer} oppName={players?.[mv.color]?.name}
                   onExplain={!['book', 'forced'].includes(mv.cls) && (mv.replyLine.length || mv.bestLine.length) ? () => openExplain(mv) : null}
                   onRetry={['inaccuracy', 'mistake', 'miss', 'blunder'].includes(mv.cls) && mv.bestUci ? () => startRetry(mv.ply) : null} />
                 <MoveList result={result} ply={ply} onSeek={seek} />

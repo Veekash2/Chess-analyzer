@@ -191,9 +191,22 @@ const PITCH = { brilliant: 1.08, great: 1.05, blunder: 0.96, mistake: 0.98 }
 const BORING = /^(a standard opening move|book move|standard theory)\.?$/i
 
 /** What to say for one reviewed move. Returns { text, pitch }. */
-export function coachScript(m, { opponent, style = 'coach' } = {}) {
+const OPP_REACT = {
+  brilliant: 'A brilliant move by your opponent.', great: 'A great move by your opponent.', best: 'Your opponent found the best move.',
+  excellent: 'A good move by your opponent.', good: 'A decent move by your opponent.', book: 'A book move.', forced: 'The only move for your opponent.',
+  inaccuracy: 'A small inaccuracy by your opponent.', mistake: 'Your opponent made a mistake!', miss: 'Your opponent missed something.', blunder: 'Your opponent blundered!',
+}
+
+export function coachScript(m, { opponent, style = 'coach', reason: given = null } = {}) {
   const seed = (m.ply * 7 + m.san.length) // same line each time you revisit a move, varied across moves
   const spoken = spokenSan(m.san)
+  // the opponent's move: say what happened and YOUR best reply - never what they should have played
+  if (opponent && given != null) {
+    const rest = speakable(given.replace(/^.*?played [^,]+, [^.]+\.\s*/, '').replace(/\s*\([^)]*\)/g, ''))
+    const text = [`${cap(spoken)}.`, OPP_REACT[m.cls] || '', rest].filter(Boolean).join(' ')
+    const sv = STYLE_VOICE[style] || STYLE_VOICE.coach
+    return { text, pitch: sv.pitch, rate: sv.rate }
+  }
   const lines = STYLE_LINES[style] || REACT
   const react = say(lines[m.cls] || [['{m}.']], seed).map((t) => t.replace('{m}', spoken))
   if (opponent && !['brilliant', 'great', 'blunder', 'mistake', 'miss'].includes(m.cls)) react[0] = react[0].replace(/^(Nice|Good stuff|Good|Yes!)[.,]?\s*/, '')
