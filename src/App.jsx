@@ -17,6 +17,7 @@ const loadPlayView = () => import('./play/PlayView')
 const loadOpeningsView = () => import('./openings/OpeningsView')
 const loadLessonsView = () => import('./lessons/LessonsView')
 const loadScoutView = () => import('./scout/ScoutView')
+const loadTrainView = () => import('./train/TrainView')
 const InsightsView = lazy(loadInsightsView)
 const ReviewView = lazy(loadReviewView)
 const CompareView = lazy(loadCompareView)
@@ -25,11 +26,12 @@ const PlayView = lazy(loadPlayView)
 const OpeningsView = lazy(loadOpeningsView)
 const LessonsView = lazy(loadLessonsView)
 const ScoutView = lazy(loadScoutView)
+const TrainView = lazy(loadTrainView)
 const PageLoading = () => <div className="card page-loading muted">Loading...</div>
 const Page = ({ children }) => <Suspense fallback={<PageLoading />}>{children}</Suspense>
 if (typeof window !== 'undefined') {
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500))
-  window.addEventListener('load', () => idle(() => [loadInsightsView, loadReviewView, loadCompareView, loadPuzzlesView, loadPlayView, loadOpeningsView, loadLessonsView, loadScoutView].forEach((f) => f())))
+  window.addEventListener('load', () => idle(() => [loadInsightsView, loadReviewView, loadCompareView, loadPuzzlesView, loadPlayView, loadOpeningsView, loadLessonsView, loadScoutView, loadTrainView].forEach((f) => f())))
 }
 
 const LIMITS = [['all', 'All'], [100, '100'], [200, '200'], [500, '500'], [1000, '1,000'], [2000, '2,000']]
@@ -300,6 +302,7 @@ export default function App() {
           {page !== 'play' && <button className="link-btn hero-alt" onClick={() => setPage('play')}>Play a bot →</button>}
           {page !== 'openings' && <button className="link-btn hero-alt" onClick={() => setPage('openings')}>Practise openings →</button>}
           {page !== 'lessons' && <button className="link-btn hero-alt" onClick={() => setPage('lessons')}>Lessons →</button>}
+          {page !== 'train' && <button className="link-btn hero-alt" onClick={() => setPage('train')}>Notation &amp; blindfold →</button>}
           {page !== 'compare' && <button className="link-btn hero-alt" onClick={() => setPage('compare')}>Compare friends →</button>}
         </div>
       </header>
@@ -342,9 +345,9 @@ export default function App() {
 
       {status === 'done' && rows.length === 0 && <section className="card"><p>This player has no public games yet.</p></section>}
 
-      {(hasData || ['review', 'compare', 'puzzles', 'play', 'openings', 'lessons', 'scout'].includes(page) || puzzles.puzzles.length > 0) && (
+      {(hasData || ['review', 'compare', 'puzzles', 'play', 'openings', 'lessons', 'scout', 'train'].includes(page) || puzzles.puzzles.length > 0) && (
         <nav className="page-tabs" role="tablist" ref={tabsRef}>
-          {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review'], ['puzzles', 'Puzzles'], ['play', 'Play bots'], ['openings', 'Openings'], ['lessons', 'Lessons'], ['compare', 'Compare'], ['scout', 'Scout']].filter(([k]) => hasData || ['review', 'compare', 'puzzles', 'play', 'openings', 'lessons', 'scout'].includes(k)).map(([k, label]) => (
+          {[['overview', 'Overview'], ['insights', 'Insights'], ['review', 'Game Review'], ['puzzles', 'Puzzles'], ['play', 'Play bots'], ['openings', 'Openings'], ['lessons', 'Lessons'], ['train', 'Notation & Blindfold'], ['compare', 'Compare'], ['scout', 'Scout']].filter(([k]) => hasData || ['review', 'compare', 'puzzles', 'play', 'openings', 'lessons', 'scout', 'train'].includes(k)).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={page === k} className={page === k ? 'page-tab active' : 'page-tab'} onClick={() => setPage(k)}>
               {label}
               {k === 'puzzles' && puzzles.puzzles.some((p) => p.status !== 'solved') && <span className="badge">{puzzles.puzzles.filter((p) => p.status !== 'solved').length}</span>}
@@ -371,10 +374,11 @@ export default function App() {
         </section>
       )}
 
+      {page === 'train' && <Page><TrainView /></Page>}
       {page === 'scout' && <Page><ScoutView target={scoutTarget} onPlayFriend={(id) => { try { localStorage.setItem('smc-bot-last', id) } catch { /* ignore */ } setBotStart(null); setPage('play'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} me={fetchedFor || null} suggestions={topOpponents} onPlayOut={(s) => { setBotStart(s); setPage('play') }} onOpenings={() => { setPage('openings'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
       {page === 'compare' && <Page><CompareView me={fetchedFor || null} suggestions={topOpponents} onScout={(name) => { setScoutTarget({ name }); setPage('scout'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
 
-      {hasData && !['review', 'compare', 'puzzles', 'play', 'openings', 'lessons', 'scout'].includes(page) && (
+      {hasData && !['review', 'compare', 'puzzles', 'play', 'openings', 'lessons', 'scout', 'train'].includes(page) && (
         <>
           <div className="toolbar">
             <div className="tabs" role="tablist">

@@ -989,3 +989,33 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .bot-photo { object-fit: cover; background: var(--bg); }
 .scout-bot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
 .scout-bot .slim { padding: 6px 12px; }
+
+/* ---- notation & blindfold trainer */
+.train { display: grid; gap: 16px; }
+.train .card { margin: 0; }
+.train-modes { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: 8px; }
+.train-modes .tab { flex: 0 0 auto; white-space: nowrap; }
+.train-opts { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+.train-layout { display: grid; grid-template-columns: minmax(0, auto) minmax(260px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .train-layout { grid-template-columns: 1fr; } }
+.train-board { min-width: 0; }
+.train-side { display: grid; gap: 10px; align-content: start; }
+.train-side h3 { margin: 0; }
+.train-target { font-size: 1.15rem; }
+.train-target strong { font-size: 1.8rem; letter-spacing: .02em; }
+.train-target.big { font-size: 2.4rem; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.train-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.train-options button { font-size: 1.05rem; padding: 10px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.train-stats { display: flex; gap: 16px; font-weight: 700; }
+.notation-ref { width: 100%; border-collapse: collapse; margin: 10px 0; }
+.notation-ref td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.notation-ref td:first-child { white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.visual-moves { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 1.1rem; line-height: 1.6; margin: 0; }
+.blind-board-off { min-height: 260px; display: grid; place-items: center; text-align: center; }
+.pieces-ghost [data-piece] { opacity: .16; }
+.pieces-hidden [data-piece] { opacity: 0; }
+.blind-input { display: flex; gap: 8px; }
+.blind-input input { flex: 1; min-width: 0; font-size: 1.1rem; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.blind-moves { max-height: 220px; overflow-y: auto; }
+.train-setup h5 { margin: 12px 0 6px; }
+.train-setup .big-green { margin-top: 12px; }
