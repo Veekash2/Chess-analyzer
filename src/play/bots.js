@@ -4,8 +4,9 @@ import { Chess } from 'chess.js'
 
 const VAL = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 }
 
-// Strength per rating step: engine depth, chance of a random "human" blunder, and how far
-// (in centipawns) below the best move the bot is still happy to play.
+// Strength per rating step: engine depth, (no longer used: random blunders were removed), and how
+// far (in centipawns) below the best move the bot is happy to play - capped at SAFE_MARGIN, so
+// weaker bots play slightly less precise moves but never blunder.
 const STRENGTH = {
   250: [1, 0.45, 500], 400: [2, 0.32, 350], 550: [3, 0.24, 280], 700: [4, 0.18, 230], 850: [5, 0.13, 180],
   1000: [6, 0.09, 140], 1100: [6, 0.07, 120], 1250: [7, 0.05, 100], 1400: [8, 0.04, 80], 1600: [9, 0.025, 55],
@@ -239,7 +240,7 @@ export const CELEBS = [
   }),
   bot({
     id: 'botez', name: 'Alexandra Botez', rating: 2000, color: '#c2185b', style: 'aggressive', botezGambit: true, group: CELEB_GROUP,
-    tagline: 'Streamer and WFM. Sharp and fun - and yes, the Botez Gambit might happen.',
+    tagline: 'Streamer and WFM. Sharp, fun and aggressive.',
     look: { skin: 'light', hair: 'long', hairColor: '#3b2414', earrings: true, shirt: '#c2185b', mood: 'grin' },
     book: [
       ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nf6', 'Ng5'],
@@ -348,7 +349,7 @@ const cpOf = (l) => (l.mate != null ? (l.mate > 0 ? 100000 - l.mate * 100 : -100
 
 /**
  * Chooses the bot's move. The engine gives its top few lines; weaker bots pick from a wider
- * band of "good enough" moves, sometimes make an outright blunder, and favour their style.
+ * band of "good enough" moves (never more than SAFE_MARGIN worse than the best) and favour their style.
  */
 /** Next move from the bot's opening book, if the game so far matches one of its lines. */
 function bookMove(bot, history, turn) {
@@ -386,6 +387,11 @@ function baitPiece(fenAfter, mover) {
  * `state` is a per-game object for one-off tricks (the Botez Gambit). The returned move
  * may carry `say` - something the bot wants to say about it.
  */
+/** No bot move may be worse than the engine's best by more than this (centipawns). */
+export const SAFE_MARGIN = 100
+/** Minimum search depth for checking a bot move, whatever the bot's level. */
+export const SAFE_DEPTH = 12
+
 export async function chooseBotMove(engine, fen, bot, history = null, state = {}) {
   const c = new Chess(fen)
   state.lastEval = null
@@ -397,34 +403,36 @@ export async function chooseBotMove(engine, fen, bot, history = null, state = {}
     const lines = bot.bookByColor[c.turn()].filter((l) => l.length > history.length && history.every((m, i) => l[i] === m))
     state.fromBook = { n: lines.filter((l) => l[history.length] === fromBook.san).length, total: lines.length }
   }
-  if (fromBook) {
-    if (fromBook.piece === 'k' && !fromBook.san.startsWith('O') && bot.chat.bongcloud) fromBook.say = pick(bot.chat.bongcloud)
-    return fromBook
-  }
-  // the Botez Gambit: once a game, in the middlegame, leave the queen where it can be taken
-  if (bot.botezGambit && !state.botezDone && history && history.length > 14 && Math.random() < 0.05) {
-    const hang = legal.filter((m) => m.piece === 'q' && !m.captured).find((m) => {
-      const a = new Chess(fen); a.move(m)
-      return a.attackers(m.to, c.turn() === 'w' ? 'b' : 'w').length && !a.isCheck()
-    })
-    if (hang) { state.botezDone = true; hang.say = pick(bot.chat.botez); return hang }
-  }
-  if (bot.blunder && Math.random() < bot.blunder) {
-    // a "human" blunder: a random legal move that isn't instantly suicidal for very low bots
-    const m = pick(legal)
-    return m
-  }
-  const { lines } = await engine.evaluate(fen, bot.depth)
+  // Every move is checked: Stockfish at least SAFE_DEPTH deep, and nothing worse than the best
+  // move by more than SAFE_MARGIN is ever played - no random blunders, no hanging pieces.
+  const { lines } = await engine.evaluate(fen, Math.max(bot.depth || 0, SAFE_DEPTH))
   const valid = lines.filter((l) => l.pv?.length)
-  if (!valid.length) return pick(legal)
+  if (!valid.length) return fromBook || pick(legal)
   const best = cpOf(valid[0])
   state.lastEval = Math.max(-2000, Math.min(2000, best)) // from the bot's side, before its move
-  // a forced mate is never thrown away by the stronger bots
-  if (valid[0].mate > 0 && bot.rating >= 1000) return toMove(c, valid[0].pv[0])
-  const pool = valid.filter((l) => best - cpOf(l) <= bot.margin)
+  if (fromBook) {
+    // opening book moves (incl. a friend's real moves) are only played if they're sound
+    const inTop = valid.find((l) => toMove(new Chess(fen), l.pv[0])?.san === fromBook.san)
+    let ok = inTop ? best - cpOf(inTop) <= SAFE_MARGIN : false
+    if (!inTop) {
+      const after = new Chess(fen); after.move(fromBook.san)
+      const reply = await engine.evaluate(after.fen(), SAFE_DEPTH)
+      const r = reply.lines.find((l) => l.pv?.length)
+      ok = r ? best - -cpOf(r) <= SAFE_MARGIN : true
+    }
+    if (ok) {
+      if (fromBook.piece === 'k' && !fromBook.san.startsWith('O') && bot.chat.bongcloud) fromBook.say = pick(bot.chat.bongcloud)
+      return fromBook
+    }
+    state.fromBook = null // their usual move here is a mistake - play a sound move instead
+  }
+  // a forced mate is never thrown away
+  if (valid[0].mate > 0) return toMove(c, valid[0].pv[0])
+  const margin = Math.min(bot.margin ?? SAFE_MARGIN, SAFE_MARGIN)
+  const pool = valid.filter((l) => best - cpOf(l) <= margin)
   const weighted = pool.map((l) => {
     const m = toMove(new Chess(fen), l.pv[0])
-    let w = 1 + Math.max(0, bot.margin - (best - cpOf(l))) / Math.max(1, bot.margin) // better moves likelier
+    let w = 1 + Math.max(0, margin - (best - cpOf(l))) / Math.max(1, margin) // better moves likelier
     if (bot.style === 'aggressive' && m && (m.san.includes('+') || m.captured)) w *= 2.2
     if (bot.style === 'knights' && m && m.piece === 'n') w *= 2
     if (bot.style === 'solid' && m && !m.captured && !m.san.includes('+')) w *= 1.4
@@ -445,14 +453,21 @@ export async function chooseBotMove(engine, fen, bot, history = null, state = {}
   }).filter((x) => x.m)
   const total = weighted.reduce((s, x) => s + x.w, 0)
   let r = Math.random() * total
-  for (const x of weighted) {
-    r -= x.w
-    if (r <= 0) {
-      if (x.m.bait && bot.chat.bait) x.m.say = pick(bot.chat.bait)
-      return x.m
+  let chosen = weighted[0]
+  for (const x of weighted) { r -= x.w; if (r <= 0) { chosen = x; break } }
+  if (!chosen) return pick(legal)
+  // second check: a move other than the engine's top choice is re-searched from the opponent's
+  // side; if it turns out to lose (a deeper threat the first search missed), play the top move
+  const top = toMove(new Chess(fen), valid[0].pv[0])
+  if (top && chosen.m.san !== top.san) {
+    const after = new Chess(fen); after.move(chosen.m.san)
+    if (!after.isCheckmate()) {
+      const rep = (await engine.evaluate(after.fen(), SAFE_DEPTH + 2)).lines.find((l) => l.pv?.length)
+      if (rep && best - -cpOf(rep) > SAFE_MARGIN) return top
     }
   }
-  return weighted[0]?.m || pick(legal)
+  if (chosen.m.bait && bot.chat.bait) chosen.m.say = pick(bot.chat.bait)
+  return chosen.m
 }
 
 function toMove(c, uci) {

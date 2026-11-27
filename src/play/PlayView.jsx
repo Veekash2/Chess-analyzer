@@ -333,7 +333,8 @@ function Game({ setup, onExit, onReview }) {
       const started = performance.now()
       const left = tc ? live(botColor) : Infinity
       // in time trouble the bot calculates less, like a person would
-      const depth = left < 5000 ? Math.min(bot.depth, 3) : left < 15000 ? Math.min(bot.depth, 6) : bot.depth
+      // low on time: think less, but never below the blunder-check depth (see SAFE_DEPTH in bots.js)
+      const depth = left < 5000 ? Math.min(bot.depth, 10) : left < 15000 ? Math.min(bot.depth, 12) : bot.depth
       const mv = await chooseBotMove(engine, game.fen(), depth === bot.depth ? bot : { ...bot, depth }, game.history(), trick.current)
       // a human-ish pause, scaled to the clock: quick in bullet, more thought in rapid
       const target = bot.fast ? 120 + Math.random() * 250
