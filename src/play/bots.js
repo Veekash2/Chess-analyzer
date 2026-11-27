@@ -23,6 +23,8 @@ const bot = (b) => {
   const [depth, blunder, margin] = strengthFor(b.rating)
   return { depth, blunder, margin, ...b }
 }
+/** Build a bot object at a given rating (used for friend bots). */
+export const makeBot = bot
 
 export const LEVELS = [
   { name: 'Beginner', max: 850 },
@@ -349,9 +351,10 @@ const cpOf = (l) => (l.mate != null ? (l.mate > 0 ? 100000 - l.mate * 100 : -100
  * band of "good enough" moves, sometimes make an outright blunder, and favour their style.
  */
 /** Next move from the bot's opening book, if the game so far matches one of its lines. */
-function bookMove(bot, history) {
-  if (!bot.book || !history) return null
-  const lines = bot.book.filter((l) => l.length > history.length && history.every((m, i) => l[i] === m))
+function bookMove(bot, history, turn) {
+  const book = bot.bookByColor ? bot.bookByColor[turn] : bot.book
+  if (!book || !history) return null
+  const lines = book.filter((l) => l.length > history.length && history.every((m, i) => l[i] === m))
   if (!lines.length) return null
   const san = pick(lines)[history.length]
   try { return replay(history, san) } catch { return null }
@@ -388,7 +391,12 @@ export async function chooseBotMove(engine, fen, bot, history = null, state = {}
   state.lastEval = null
   const legal = c.moves({ verbose: true })
   if (legal.length === 1) return legal[0]
-  const fromBook = bookMove(bot, history)
+  const fromBook = bookMove(bot, history, c.turn())
+  state.fromBook = null
+  if (fromBook && bot.bookByColor) {
+    const lines = bot.bookByColor[c.turn()].filter((l) => l.length > history.length && history.every((m, i) => l[i] === m))
+    state.fromBook = { n: lines.filter((l) => l[history.length] === fromBook.san).length, total: lines.length }
+  }
   if (fromBook) {
     if (fromBook.piece === 'k' && !fromBook.san.startsWith('O') && bot.chat.bongcloud) fromBook.say = pick(bot.chat.bongcloud)
     return fromBook

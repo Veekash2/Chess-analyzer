@@ -982,3 +982,10 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .cmp-scout-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
 .cmp-scout-row .chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; font-size: .85rem; }
 .cmp-scout { margin-top: 8px; padding: 6px 10px; font-size: .85rem; }
+
+/* ---- friend bots */
+.friend-card-wrap { display: grid; gap: 2px; }
+.friend-del { justify-self: center; padding: 0; opacity: .7; }
+.bot-photo { object-fit: cover; background: var(--bg); }
+.scout-bot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.scout-bot .slim { padding: 6px 12px; }

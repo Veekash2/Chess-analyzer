@@ -371,7 +371,7 @@ export default function App() {
         </section>
       )}
 
-      {page === 'scout' && <Page><ScoutView target={scoutTarget} me={fetchedFor || null} suggestions={topOpponents} onPlayOut={(s) => { setBotStart(s); setPage('play') }} onOpenings={() => { setPage('openings'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
+      {page === 'scout' && <Page><ScoutView target={scoutTarget} onPlayFriend={(id) => { try { localStorage.setItem('smc-bot-last', id) } catch { /* ignore */ } setBotStart(null); setPage('play'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} me={fetchedFor || null} suggestions={topOpponents} onPlayOut={(s) => { setBotStart(s); setPage('play') }} onOpenings={() => { setPage('openings'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
       {page === 'compare' && <Page><CompareView me={fetchedFor || null} suggestions={topOpponents} onScout={(name) => { setScoutTarget({ name }); setPage('scout'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
 
       {hasData && !['review', 'compare', 'puzzles', 'play', 'openings', 'lessons', 'scout'].includes(page) && (

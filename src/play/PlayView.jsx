@@ -3,6 +3,7 @@ import { useCustomPieces } from '../BoardPicker'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { BOTS, CELEBS, CELEB_GROUP, ALL_BOTS, LEVELS, chooseBotMove, getBeaten, markBeaten, materialFor, pick } from './bots'
+import { deleteFriendBot, friendSay, friendToBot, getFriendBots } from './friendBot'
 import { getBotEngine, getOpeningBook } from '../review/engine'
 import { lineFor } from './chatLines'
 import Portrait from './Portrait'
@@ -48,6 +49,7 @@ function Clock({ ms, active, low }) {
 }
 
 function BotAvatar({ bot, size = 48 }) {
+  if (bot.avatar) return <img className="bot-photo" src={bot.avatar} alt={`${bot.name}`} width={size} height={size} style={{ borderRadius: '50%', border: `3px solid ${bot.color}` }} />
   return <Portrait look={bot.look} bg={bot.color} size={size} title={`${bot.name} portrait`} />
 }
 
@@ -59,7 +61,8 @@ function BotPicker({ onStart, start }) {
   const [tc, setTc] = useState(savedTc)
   const chooseTc = (v) => { setTc(v); try { localStorage.setItem(TC_KEY, JSON.stringify(v)) } catch { /* ignore */ } }
   const beaten = getBeaten()
-  const bot = ALL_BOTS.find((b) => b.id === botId) || BOTS[5]
+  const [friends, setFriends] = useState(() => getFriendBots().map(friendToBot))
+  const bot = [...friends, ...ALL_BOTS].find((b) => b.id === botId) || BOTS[5]
   const choose = (id) => { setBotId(id); try { localStorage.setItem('smc-bot-last', id) } catch { /* ignore */ } }
   return (
     <div className="bot-picker">
@@ -84,6 +87,27 @@ function BotPicker({ onStart, start }) {
             </div>
           )
         })}
+        <div className="bot-level friend-level">
+          <h5>Your friends as bots</h5>
+          {friends.length ? (
+            <>
+              <p className="muted small">Built from your friends' real games: they play their actual openings move by move, then Stockfish at their rating - and talk after every move. Make more from the Scout tab.</p>
+              <div className="bot-grid">
+                {friends.map((b) => (
+                  <div key={b.id} className="friend-card-wrap">
+                    <button className={`bot-card ${b.id === botId ? 'on' : ''}`} onClick={() => choose(b.id)} aria-pressed={b.id === botId}>
+                      <BotAvatar bot={b} size={56} />
+                      <span className="bot-name">{b.name}{beaten[b.id] ? <span className="beaten" title={`Beaten ${beaten[b.id]}x`}>★</span> : null}</span>
+                      <span className="bot-rating">{b.rating}</span>
+                      <span className="bot-tag small">{b.friend.games} games · {b.friend.fav[0] || 'mixed openings'}</span>
+                    </button>
+                    <button className="link-btn small friend-del" onClick={() => { deleteFriendBot(b.id); setFriends(getFriendBots().map(friendToBot)) }} aria-label={`Delete ${b.name} bot`}>remove</button>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : <p className="muted small">Scout a friend (Scout tab) and press "Make a bot of them" - it learns their openings and favourite moves so you can practise every line against them.</p>}
+        </div>
         <div className="bot-level celeb-level">
           <h5>{CELEB_GROUP}</h5>
           <p className="muted small">Fan-made style bots: Stockfish set to each player's approximate rating, playing openings they are known for, with a few of their trademark habits. Not affiliated with them, and the chat lines are made up.</p>
@@ -263,6 +287,11 @@ function Game({ setup, onExit, onReview }) {
   /** Decide what (if anything) the bot says after a move - most interesting thing first. */
   const react = (mv, byBot, evalEvent) => {
     const g = gameRef.current
+    if (bot.friend) {
+      const t = friendSay(bot, { history: g.history(), mv, byBot, botColor, evalEvent, lastEval: trick.current.lastEval, fromBook: byBot ? trick.current.fromBook : null })
+      if (t) { setSay(t); chat.current.lastPly = g.history().length }
+      return
+    }
     const opening = openingNow()
     if (byBot) {
       if (evalEvent && speak(evalEvent)) return

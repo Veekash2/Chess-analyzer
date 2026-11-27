@@ -3,9 +3,9 @@
 // Run: node scripts/check-courses.mjs [courseId...]
 import { spawn } from 'node:child_process'
 import { Chess } from 'chess.js'
-import { VIENNA_FULL, SCANDI_FULL } from '../src/openings/deepCourses.js'
+import { VIENNA_FULL, SCANDI_FULL, SCOTCH_FULL, FRENCH_FULL } from '../src/openings/deepCourses.js'
 
-const courses = [VIENNA_FULL, SCANDI_FULL].filter((c) => process.argv.length <= 2 || process.argv.includes(c.id))
+const courses = [VIENNA_FULL, SCANDI_FULL, SCOTCH_FULL, FRENCH_FULL].filter((c) => process.argv.length <= 2 || process.argv.includes(c.id))
 const eng = spawn(process.execPath, ['node_modules/stockfish/src/stockfish-17.1-lite-single-03e3232.js'])
 let buf = '', waiter = null
 eng.stdout.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const l = buf.slice(0, i).trim(); buf = buf.slice(i + 1); waiter?.(l) } })

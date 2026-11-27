@@ -7,6 +7,7 @@ import { getEngine } from '../review/engine'
 import { COURSES } from '../openings/courses'
 import { useCustomPieces } from '../BoardPicker'
 import { scout } from './scout'
+import { saveFriendBot } from '../play/friendBot'
 
 const COURSE_NAME = Object.fromEntries(COURSES.map((c) => [c.id, c.name]))
 const KEY = 'smc-scout-recent'
@@ -57,7 +58,8 @@ function Problem({ p, name, onPractise }) {
   )
 }
 
-export default function ScoutView({ me, suggestions = [], onPlayOut, onOpenings, target }) {
+export default function ScoutView({ me, suggestions = [], onPlayOut, onOpenings, target, onPlayFriend }) {
+  const [botMade, setBotMade] = useState(null)
   const [input, setInput] = useState('')
   const [months, setMonths] = useState(12)
   const [status, setStatus] = useState('idle') // idle | loading | done | error
@@ -132,6 +134,16 @@ export default function ScoutView({ me, suggestions = [], onPlayOut, onOpenings,
               <p className="small muted">{report.n} games · scores {report.overall}% · {report.white.score}% as White, {report.black.score}% as Black · average {report.avgLength} moves
                 {Object.keys(report.ratings).length ? ` · ${Object.entries(report.ratings).map(([k, v]) => `${k} ${v}`).join(', ')}` : ''}</p>
               {report.vsMe && <p className="small">Against you: they scored {report.vsMe.theirScore}% in {report.vsMe.n} games.</p>}
+              <div className="scout-bot">
+                {botMade?.name === who.name ? (
+                  <>
+                    <span className="small good-move">✓ {who.name} bot ready - {botMade.games} games, rated {botMade.rating}.</span>
+                    {onPlayFriend && <button className="big-green slim" onClick={() => onPlayFriend(botMade.id)}>Play the {who.name} bot</button>}
+                  </>
+                ) : (
+                  <button className="secondary slim" onClick={() => setBotMade(saveFriendBot(who.name, who.rows, who.avatar))} title="Learns their openings and favourite moves so you can practise against them">🤖 Make a bot of {who.name}</button>
+                )}
+              </div>
             </div>
           </section>
 
