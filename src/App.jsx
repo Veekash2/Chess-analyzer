@@ -114,6 +114,7 @@ export default function App() {
   )
   // Replay every game in a Web Worker so the page stays responsive
   const [page, setPage] = useState('overview')
+  const [scoutTarget, setScoutTarget] = useState(null) // { name } when Compare opens Scout
   const [botStart, setBotStart] = useState(null) // opening position to play out against a bot
   const puzzles = usePuzzleStore()
   const [reviewPgn, setReviewPgn] = useState(null)
@@ -370,8 +371,8 @@ export default function App() {
         </section>
       )}
 
-      {page === 'scout' && <Page><ScoutView me={fetchedFor || null} suggestions={topOpponents} onPlayOut={(s) => { setBotStart(s); setPage('play') }} onOpenings={() => { setPage('openings'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
-      {page === 'compare' && <Page><CompareView me={fetchedFor || null} suggestions={topOpponents} /></Page>}
+      {page === 'scout' && <Page><ScoutView target={scoutTarget} me={fetchedFor || null} suggestions={topOpponents} onPlayOut={(s) => { setBotStart(s); setPage('play') }} onOpenings={() => { setPage('openings'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
+      {page === 'compare' && <Page><CompareView me={fetchedFor || null} suggestions={topOpponents} onScout={(name) => { setScoutTarget({ name }); setPage('scout'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>}
 
       {hasData && !['review', 'compare', 'puzzles', 'play', 'openings', 'lessons', 'scout'].includes(page) && (
         <>

@@ -57,7 +57,7 @@ function Problem({ p, name, onPractise }) {
   )
 }
 
-export default function ScoutView({ me, suggestions = [], onPlayOut, onOpenings }) {
+export default function ScoutView({ me, suggestions = [], onPlayOut, onOpenings, target }) {
   const [input, setInput] = useState('')
   const [months, setMonths] = useState(12)
   const [status, setStatus] = useState('idle') // idle | loading | done | error
@@ -91,6 +91,8 @@ export default function ScoutView({ me, suggestions = [], onPlayOut, onOpenings 
     }
   }
   useEffect(() => () => abort.current?.abort(), [])
+  // opened from Compare friends: scout that player straight away
+  useEffect(() => { if (target?.name) { setInput(target.name); run(target.name) } }, [target]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const chips = [...new Set([...recent, ...suggestions.map((s) => (typeof s === 'string' ? s : s.name || s.username)).filter(Boolean)])].slice(0, 10)
 

@@ -977,3 +977,8 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .scout-bar span { display: block; height: 100%; background: #8f9e7c; }
 .scout-bar.bad span { background: #d63a3a; }
 .scout-bar.good span { background: #7fae3c; }
+
+/* ---- compare -> scout */
+.cmp-scout-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+.cmp-scout-row .chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; font-size: .85rem; }
+.cmp-scout { margin-top: 8px; padding: 6px 10px; font-size: .85rem; }

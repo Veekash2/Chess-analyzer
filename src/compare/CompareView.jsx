@@ -25,7 +25,8 @@ function PlayerChip({ name, color, onRemove }) {
   )
 }
 
-export default function CompareView({ me, suggestions = [] }) {
+export default function CompareView({ me, suggestions = [], onScout }) {
+  const isMe = (n) => !!me && n.toLowerCase() === me.toLowerCase()
   // remember the last group you compared (saved in this browser)
   const [names, setNames] = useState(() => {
     try { const saved = JSON.parse(localStorage.getItem('smc-compare-names') || '[]'); if (Array.isArray(saved) && saved.length) return saved.slice(0, MAX) } catch { /* ignore */ }
@@ -104,6 +105,12 @@ export default function CompareView({ me, suggestions = [] }) {
         <div className="p-chips">
           {names.map((n, i) => <PlayerChip key={n} name={n} color={COLORS[i]} onRemove={() => remove(i)} />)}
         </div>
+        {onScout && names.some((n) => !isMe(n)) && (
+          <div className="cmp-scout-row">
+            <span className="muted small">Scout their openings &amp; weaknesses:</span>
+            {names.filter((n) => !isMe(n)).map((n) => <button key={n} className="chip" onClick={() => onScout(n)}>🔍 {n}</button>)}
+          </div>
+        )}
         <form className="search compare-add" onSubmit={(e) => { e.preventDefault(); add(input) }}>
           <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Add a friend's username" aria-label="Friend's Chess.com username" spellCheck={false} disabled={names.length >= MAX} />
           <button type="submit" className="secondary" disabled={!input.trim() || names.length >= MAX}>Add</button>
@@ -137,6 +144,7 @@ export default function CompareView({ me, suggestions = [] }) {
                   <WdlBar s={quick.totals[i]} />
                   <span className="muted small">{quick.totals[i].pct ?? '-'}% score</span>
                 </div>
+                {onScout && !isMe(p.username) && <button className="secondary slim cmp-scout" onClick={() => onScout(p.username)}>🔍 Scout {p.username}</button>}
               </section>
             ))}
           </div>
