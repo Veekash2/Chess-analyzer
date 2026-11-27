@@ -15,10 +15,10 @@ import { StorageWarning } from '../puzzles/PuzzlesView'
 /* ------------------------------------------------------------------ per-player game report */
 function GameReport({ result, players, headers, pgn, onSeek, puzzles, onOpenPuzzles }) {
   const [side, setSide] = useState(players.b.you ? 'b' : 'w')
-  const report = useMemo(() => playerReport(result, side, { headers }), [result, side, headers])
   const p = players[side]
-  const est = report.estimate
   const actual = parseInt(p.rating, 10)
+  const report = useMemo(() => playerReport(result, side, { headers, rating: actual > 0 ? actual : 0 }), [result, side, headers, actual])
+  const est = report.estimate
   return (
     <div className="game-report">
       <h4>Game report</h4>
@@ -33,20 +33,20 @@ function GameReport({ result, players, headers, pgn, onSeek, puzzles, onOpenPuzz
       {est && (
         <div className="est-card">
           <div>
-            <span className="muted small">Played like</span>
+            <span className="muted small">This game's performance</span>
             <strong>~{est.rating}</strong>
             <span className="muted small">likely {est.low}-{est.high}</span>
           </div>
-          {actual > 0 && (
+          {est.known ? (
             <div>
               <span className="muted small">Actual rating</span>
               <strong>{actual}</strong>
-              <span className={`small ${actual < est.low ? 'up' : actual > est.high ? 'down' : 'muted'}`}>
-                {actual < est.low ? 'played well above their rating' : actual > est.high ? 'played well below their rating' : 'within the range for their rating'}
+              <span className={`small ${est.diff >= 50 ? 'up' : est.diff <= -50 ? 'down' : 'muted'}`}>
+                {est.diff >= 50 ? `played above their usual level (+${est.diff})` : est.diff <= -50 ? `played below their usual level (${est.diff})` : 'played at their usual level'}
               </span>
             </div>
-          )}
-          <p className="muted small est-note">Rough estimate from average centipawn loss ({Math.round(report.acpl)}) on non-book moves, calibrated on real rated games. A single game can be off by about ±550, so look at the trend across many games rather than one result.</p>
+          ) : <div><span className="muted small">Actual rating</span><strong>?</strong><span className="muted small">not in this PGN - range is wide</span></div>}
+          <p className="muted small est-note">Starts from the player's real rating and moves it only as far as this game's evidence justifies (blunder rate, lost winning chances, best moves). Tested on 668 rated games from 400 to 3400: one game alone can't tell 1200 from 1600 - accuracy-only estimates overrated low-rated players by 500+ points.</p>
         </div>
       )}
 

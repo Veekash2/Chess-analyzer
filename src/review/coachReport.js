@@ -17,6 +17,40 @@ const forMover = (s, color) => (s.mate != null ? { mate: color === 'w' ? s.mate 
 // tells "club level" from "expert level", not 900 from 1300.
 export const RATING_MODEL = { A: 6262, B: -1107, err: 550, min: 400, max: 2800 }
 
+/**
+ * This game's PERFORMANCE, anchored on the player's real rating.
+ * Recalibrated on 668 player-games (ratings ~400-3400, blitz/rapid, Stockfish depth 16 - the
+ * site's default) with scripts/calib-*.mjs. Finding: one game's accuracy only weakly reflects
+ * strength (the best single-game formula is still off by ~590 on average, and wildly
+ * overrates low-rated players). So we treat the game as noisy evidence and combine it with
+ * the player's actual rating: raw = w . features;  raw ~ N(c + d*R, s^2);  prior R ~ N(rating, tau^2).
+ */
+export const PERF_MODEL = { w: [5099.341, -946.993, -12.847, -6.896, 1379.955], c: 1189.1, d: 0.35, s: 418.2, tau: 250 }
+
+export function estimatePerformance(mine, rating, model = PERF_MODEL) {
+  const scored = mine.filter((m) => m.cls !== 'book' && m.cls !== 'forced')
+  if (scored.length < 10) return null
+  const n = scored.length
+  const cnt = (k) => mine.filter((m) => m.cls === k).length
+  const f = [
+    1,
+    Math.log(scored.reduce((a, m) => a + Math.min(m.cpLoss, 300), 0) / n + 10),
+    Math.log((scored.reduce((a, m) => a + m.loss, 0) / n) * 100 + 1),
+    (cnt('blunder') + 0.5 * cnt('mistake') + 0.5 * cnt('miss')) / n,
+    (cnt('best') + cnt('great') + cnt('brilliant')) / n,
+  ]
+  const raw = f.reduce((a, x, i) => a + x * model.w[i], 0)
+  const known = rating > 0
+  const R0 = known ? rating : 1500
+  const tau = known ? model.tau : 700 // no rating in the PGN: lean on the game itself, with a wide range
+  const mL = (raw - model.c) / model.d, vL = (model.s / model.d) ** 2
+  const v = 1 / (1 / tau ** 2 + 1 / vL)
+  const m = v * (R0 / tau ** 2 + mL / vL)
+  const sd = Math.sqrt(v)
+  const r25 = (x) => Math.round(Math.max(model.min || 100, Math.min(3300, x)) / 25) * 25
+  return { rating: r25(m), low: r25(m - sd), high: r25(m + sd), known, diff: known ? Math.round(m - rating) : null }
+}
+
 export function estimateRating(acpl, moves, model = RATING_MODEL) {
   if (moves < 10) return null
   const est = model.A + model.B * Math.log(acpl + 10)
@@ -33,7 +67,7 @@ function openingSlug(name) {
 }
 
 /** Builds the report for one colour ('w' or 'b'). */
-export function playerReport(result, color, { headers = {} } = {}) {
+export function playerReport(result, color, { headers = {}, rating = 0 } = {}) {
   const all = result.moves
   const mine = all.filter((m) => m.color === color)
   const side = result.summary[color]
@@ -149,12 +183,11 @@ export function playerReport(result, color, { headers = {} } = {}) {
   const mated = mine.find((m) => m.isMate)
   if (mated) strengths.push({ title: 'Delivered checkmate', detail: moveLabel(mated) })
 
-  const nonBook = mine.filter((m) => m.cls !== 'book' && m.cls !== 'forced').length
   return {
     weaknesses: weaknesses.slice(0, 6),
     strengths: strengths.slice(0, 5),
     learn: [...learn.values()].slice(0, 5),
-    estimate: estimateRating(side.acpl, nonBook),
+    estimate: estimatePerformance(mine, rating),
     acpl: side.acpl,
   }
 }
