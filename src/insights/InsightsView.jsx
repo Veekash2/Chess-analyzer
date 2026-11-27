@@ -76,8 +76,8 @@ function Personality({ p, onOpenings }) {
           <div className="persona-courses">{t.courses.filter((id) => COURSE_NAME[id]).map((id) => <button key={id} className="secondary slim" onClick={onOpenings}>{COURSE_NAME[id]}</button>)}</div>
         </div>
         <div>
-          <h4>Your best openings</h4>
-          <ol className="small persona-open">{p.openings.slice(0, 5).map((o) => <li key={o.name}>{o.name} <span className="muted">- {o.score}% in {o.n} games</span></li>)}</ol>
+          <h4>Your main openings</h4>
+          <ol className="small persona-open">{p.openings.slice(0, 6).map((o) => <li key={o.name}>{o.name} <span className="muted">- {o.n} games, {o.score}% score</span></li>)}</ol>
           {fav.length > 0 && <p className="small">You picked the Vienna and Scandinavian: {fav.map((o) => `${o.name} ${o.score}% (${o.n} games)`).join(', ')}. Both are sharp, development-first openings that fit an attacking style.</p>}
         </div>
       </div>

@@ -136,6 +136,7 @@ export function personality(rows) {
     const e = (byFam[f] ||= { name: f, n: 0, pts: 0, sharp: SHARP.test(r.opening) })
     e.n++; e.pts += r.outcome === 'win' ? 1 : r.outcome === 'draw' ? 0.5 : 0
   }
-  const openings = Object.values(byFam).filter((e) => e.n >= 25 && e.name !== 'Unknown').map((e) => ({ ...e, score: Math.round((100 * e.pts) / e.n) })).sort((a, b) => b.score - a.score)
+  // most-played first: a big sample says more than a hot streak in 25 games
+  const openings = Object.values(byFam).filter((e) => e.n >= 25 && e.name !== 'Unknown').map((e) => ({ ...e, score: Math.round((100 * e.pts) / e.n) })).sort((a, b) => b.n - a.n)
   return { type, matches: matches.slice(0, 4), dims, openings, n: games.length }
 }

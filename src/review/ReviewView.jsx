@@ -298,6 +298,69 @@ function momentText({ m, before, after, swing }, result, reviewer) {
   return `Your opponent's ${m.san} put you under pressure: ${chances}.`
 }
 
+
+/**
+ * The coach's verdict in plain words: what went wrong for YOU this game and the move that
+ * cost it (or, after a win, your key moment).
+ */
+export function gameVerdict(result, players, reviewer) {
+  const mine = result.moves.filter((m) => m.color === reviewer)
+  const res = (players.result || '').split(' ')[0]
+  const outcome = res === '1-0' ? (reviewer === 'w' ? 'win' : 'loss') : res === '0-1' ? (reviewer === 'b' ? 'win' : 'loss') : res === '1/2-1/2' ? 'draw' : null
+  const count = (c) => mine.filter((m) => m.cls === c).length
+  const blunders = count('blunder'), mistakes = count('mistake'), misses = count('miss'), inacc = count('inaccuracy')
+  const tps = turningPoints(result, reviewer, 8)
+  const worst = tps.filter((x) => x.m.color === reviewer && x.swing < 0).sort((a, b) => a.swing - b.swing)[0]
+  const best = tps.filter((x) => x.swing > 0).sort((a, b) => b.swing - a.swing)[0]
+  const moveNo = (m) => `${Math.ceil(m.ply / 2)}${m.color === 'w' ? '.' : '...'}${m.san}`
+  const acc = result.summary[reviewer]?.accuracy
+  const oppAcc = result.summary[reviewer === 'w' ? 'b' : 'w']?.accuracy
+
+  // the main problem, most important first
+  const weak = mine.filter((m) => ['mistake', 'blunder', 'miss'].includes(m.cls))
+  const byPhase = { opening: 0, middlegame: 0, endgame: 0 }
+  for (const m of weak) byPhase[m.phase] = (byPhase[m.phase] || 0) + 1
+  const phase = Object.entries(byPhase).sort((a, b) => b[1] - a[1])[0]
+  let problem
+  if (!weak.length && !inacc) problem = 'You played a clean game - no real errors.'
+  else if (misses >= 2) problem = `Missed chances: ${misses} times your opponent went wrong and you didn't punish it. Look for checks, captures and threats after every opponent mistake.`
+  else if (blunders >= 2) problem = `Blunders: ${blunders} moves gave away a lot. Before you move, check what your move leaves undefended.`
+  else if (weak.length && phase[1] >= Math.max(2, weak.length * 0.6)) problem = `Your errors came in the ${phase[0]} (${phase[1]} of ${weak.length}).${phase[0] === 'opening' ? ' Study your opening lines - the Openings tab has courses.' : phase[0] === 'endgame' ? ' Endgame technique cost you - try the Endgame lessons and drills.' : ' Slow down in complicated middlegames and check your opponent\'s threats.'}`
+  else if (blunders === 1 && weak.length === 1) problem = 'One big slip in an otherwise solid game.'
+  else if (acc != null && oppAcc != null && oppAcc - acc >= 10) problem = `You were outplayed: ${acc.toFixed(0)} accuracy against ${oppAcc.toFixed(0)}. ${mistakes + blunders} mistakes and blunders added up.`
+  else problem = `${mistakes + blunders + misses} mistakes and ${inacc} inaccuracies - small errors added up.`
+
+  let costly = null
+  if (worst && outcome !== 'win') {
+    costly = `The move that cost the game: ${moveNo(worst.m)} - your winning chances fell from ${worst.before}% to ${worst.after}%.${worst.m.bestSan && worst.m.bestSan !== worst.m.san ? ` ${worst.m.bestSan} was the move.` : ''}`
+  } else if (worst && worst.swing <= -20) {
+    costly = `Your worst moment: ${moveNo(worst.m)} (chances ${worst.before}% → ${worst.after}%) - you still won, but ${worst.m.bestSan || 'a better move'} was stronger.`
+  }
+  let highlight = null
+  if (best && best.m.color !== reviewer) {
+    const next = result.moves[best.m.ply]
+    highlight = next && best.m.replyLine?.[0] === next.san
+      ? `Key moment: after your opponent's ${moveNo(best.m)} you found ${next.san} and took over.`
+      : `Key moment: your opponent's ${moveNo(best.m)} gave you a big chance (${best.before}% → ${best.after}%).`
+  } else if (best) highlight = `Key moment: ${moveNo(best.m)} swung the game your way (${best.before}% → ${best.after}%).`
+  const opener = outcome === 'win' ? 'Well played - you won.' : outcome === 'loss' ? 'Tough one.' : outcome === 'draw' ? 'A draw.' : 'Here\'s how your game went.'
+  return { outcome, opener, problem, costly, highlight: outcome === 'win' || !costly ? highlight : null, worstPly: worst?.m.ply, bestPly: best?.m.ply }
+}
+
+function VerdictBubble({ result, players, reviewer, onSeek }) {
+  const v = gameVerdict(result, players, reviewer)
+  return (
+    <div className="coach verdict">
+      <div className="coach-avatar" aria-hidden="true">♞</div>
+      <div className="coach-bubble speech">
+        <p><strong>{v.opener}</strong> {v.problem}</p>
+        {v.costly && <p><button className="link-btn verdict-link" onClick={() => onSeek(v.worstPly)}>{v.costly}</button></p>}
+        {v.highlight && <p><button className="link-btn verdict-link" onClick={() => onSeek(v.bestPly)}>{v.highlight}</button></p>}
+      </div>
+    </div>
+  )
+}
+
 function TurningPoints({ result, reviewer, onSeek }) {
   const tps = turningPoints(result, reviewer)
   if (!tps.length) return <p className="muted small">No big swings - a steady game from start to finish.</p>
@@ -454,6 +517,7 @@ function Summary({ result, players, headers, pgn, puzzles, onOpenPuzzles, onStar
   const res = players.result
   return (
     <div className="rv-summary">
+      <VerdictBubble result={result} players={players} reviewer={reviewer} onSeek={onSeek} />
       {result.openingName && <p className="rv-opening"><span className="cls-icon" style={{ background: CLASSES.book.color }}>B</span>{result.openingName}</p>}
       <div className="acc-row">
         {[['w', w], ['b', b]].map(([c, s]) => (
