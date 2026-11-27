@@ -1012,8 +1012,8 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .notation-ref td:first-child { white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 .visual-moves { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 1.1rem; line-height: 1.6; margin: 0; }
 .blind-board-off { min-height: 260px; display: grid; place-items: center; text-align: center; }
-.pieces-ghost [data-piece] { opacity: .16; }
-.pieces-hidden [data-piece] { opacity: 0; }
+.pieces-ghost [data-piece] > * { opacity: .16; }
+.pieces-hidden [data-piece] > * { opacity: 0; }
 .blind-input { display: flex; gap: 8px; }
 .blind-input input { flex: 1; min-width: 0; font-size: 1.1rem; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 .blind-moves { max-height: 220px; overflow-y: auto; }
