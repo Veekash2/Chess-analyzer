@@ -455,7 +455,7 @@ function Game({ setup, onExit, onReview }) {
             <BotAvatar bot={bot} size={40} />
             <div className="bot-bar-text">
               <strong>{bot.name} <span className="muted">({bot.rating})</span></strong>
-              <span className="bot-speech">{thinking ? `${bot.name} is thinking...` : say}</span>
+              <span className="bot-speech">{thinking && bot.friend && say ? <>{say} <span className="muted small">(thinking...)</span></> : thinking ? `${bot.name} is thinking...` : say}</span>
             </div>
             {tc && <Clock ms={live(botColor)} active={!result && clk.current.since != null && game.turn() === botColor} low={live(botColor) < Math.min(20000, tc[0] * 6000)} />}
           </div>
