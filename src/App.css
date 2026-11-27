@@ -905,3 +905,35 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .lesson-text h3 { margin: 6px 0; }
 .lesson-text p { line-height: 1.55; }
 .lesson-play .solver-actions svg, .lesson-play p svg { width: 16px; height: 16px; vertical-align: -3px; }
+
+/* ---- game review: turning points */
+.turning-points { list-style: none; padding: 0; margin: 6px 0 12px; display: grid; gap: 6px; }
+.tp { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: start; width: 100%; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.tp:hover { border-color: var(--accent, #7fc35a); }
+.tp-n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .8rem; background: #e3b23c; color: #2a1f00; }
+.tp-main { display: grid; gap: 3px; }
+.tp-move { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tp-swing { font-weight: 800; font-size: .85rem; }
+.tp-swing.up { color: #7fae3c; }
+.tp-swing.down { color: #d63a3a; }
+.eg-tp circle { fill: #e3b23c; stroke: #111; stroke-width: 1; }
+.eg-tp text { font-size: 9px; font-weight: 800; fill: #2a1f00; pointer-events: none; }
+
+.full-tag { background: color-mix(in oklab, #e3b23c 35%, transparent); }
+
+/* ---- insights: chess personality */
+.persona-head { display: flex; gap: 16px; align-items: center; }
+.persona-head h3 { margin: 2px 0 6px; font-size: 1.6rem; }
+.persona-head p { margin: 0; }
+.persona-icon { font-size: 3rem; line-height: 1; }
+.persona-dims { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 16px 0; }
+.pdim-labels { display: flex; justify-content: space-between; font-size: .85rem; color: var(--muted, inherit); }
+.pdim-labels .on { color: var(--ink); font-weight: 700; }
+.pdim-bar { position: relative; height: 8px; border-radius: 4px; margin: 6px 0; background: linear-gradient(90deg, color-mix(in oklab, var(--accent, #7fc35a) 55%, transparent), var(--line) 50%, color-mix(in oklab, #e3b23c 60%, transparent)); }
+.pdim-bar span { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--ink); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--line); }
+.pdim ul { margin: 4px 0 0; padding-left: 16px; }
+.persona-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.persona-grid h4 { margin: 0 0 6px; }
+.persona-courses { display: flex; flex-wrap: wrap; gap: 6px; }
+.persona-courses .slim { padding: 5px 10px; font-size: .85rem; }
+.persona-open { margin: 0; padding-left: 18px; }

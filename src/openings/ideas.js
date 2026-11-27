@@ -3,6 +3,7 @@
 // the game for you, watch = the trap or danger to remember.
 
 import { YOUR_IDEAS } from './yourCourses'
+import { DEEP_IDEAS } from './deepCourses'
 
 export const IDEAS = {
   ...YOUR_IDEAS,
@@ -159,3 +160,6 @@ export const IDEAS = {
     watch: 'The c8 bishop is easily shut in - plan its development (...b6 + ...Bb7, or ...dxc4 then ...b5 + ...Bb7).',
   },
 }
+
+// the full courses come with fuller key ideas
+Object.assign(IDEAS, DEEP_IDEAS)

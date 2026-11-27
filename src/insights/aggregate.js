@@ -1,6 +1,8 @@
 // Turns per-game rows (+ replay records) into the numbers the Insights tab shows.
 import { visualsData } from './visualsData.js'
 
+import { personality } from './personality'
+
 export function score(list) {
   const w = list.filter((r) => r.outcome === 'win').length
   const d = list.filter((r) => r.outcome === 'draw').length
@@ -197,5 +199,6 @@ export function aggregate(allRows, records) {
     openings, pieces, castling, moves, advantage, time, bestGames,
     first: rows[0]?.end, last: rows.at(-1)?.end,
     vis: visualsData(rows, withRec),
+    personality: personality(rows),
   }
 }

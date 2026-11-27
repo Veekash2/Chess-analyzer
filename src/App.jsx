@@ -412,7 +412,7 @@ export default function App() {
           </div>
 
           {page === 'insights' ? (
-            <Page><InsightsView rows={view} records={records} progress={insProgress} scopeLabel={scopeLabel} onReview={(r) => openReview(r.pgn)} /></Page>
+            <Page><InsightsView rows={view} records={records} progress={insProgress} scopeLabel={scopeLabel} onReview={(r) => openReview(r.pgn)} onOpenings={() => { setPage('openings'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Page>
           ) : (<>
           <section className="tiles">
             <div className="tile"><strong>{total.n.toLocaleString()}</strong><span>games</span></div>

@@ -1,10 +1,11 @@
+import { COURSES } from '../openings/courses'
 import { useMemo, useState } from 'react'
 import { aggregate } from './aggregate'
 import { takeaways } from './takeaways'
 import { RatingChart, ScoreColumns, ScoreRows, Tile } from './Charts'
 import { BoardHeatmap, CalendarHeatmap, Chips, EndingBars, FormStrip, HourWeekHeatmap, StackedColumns, XYChart } from './Visuals'
 
-const NAV = [['summary', 'Summary'], ['form', 'Form'], ['results', 'Results'], ['openings', 'Openings'], ['when', 'When you play'],
+const NAV = [['summary', 'Summary'], ['personality', 'Personality'], ['form', 'Form'], ['results', 'Results'], ['openings', 'Openings'], ['when', 'When you play'],
   ['time', 'Clock'], ['board', 'Board'], ['material', 'Material'], ['best', 'Best games']]
 
 function SectionNav() {
@@ -36,6 +37,57 @@ const pct = (x) => (x == null ? '-' : `${Math.round(x * 100)}%`)
 const sec = (x) => (x == null ? '-' : `${x.toFixed(1)}s`)
 const cap = (s) => s[0].toUpperCase() + s.slice(1)
 
+const COURSE_NAME = Object.fromEntries(COURSES.map((c) => [c.id, c.name]))
+
+/** Chess personality: the 16 ChessPersonality types, measured from your games. */
+function Personality({ p, onOpenings }) {
+  if (!p || !p.type) return <p className="muted">Play at least 30 games to get a personality.</p>
+  const t = p.type
+  const fav = p.openings.filter((o) => /Vienna|Scandinavian/i.test(o.name))
+  return (
+    <div className="persona">
+      <div className="persona-head">
+        <span className="persona-icon" aria-hidden="true">{t.icon}</span>
+        <div>
+          <span className="small muted">Your chess personality</span>
+          <h3>The {t.name}</h3>
+          <p>{t.blurb}</p>
+        </div>
+      </div>
+      <div className="persona-dims">
+        {Object.entries(p.dims).map(([k, d]) => (
+          <div key={k} className="pdim">
+            <div className="pdim-labels"><span className={d.value < 0.5 ? 'on' : ''}>{d.left}</span><span className={d.value >= 0.5 ? 'on' : ''}>{d.right}</span></div>
+            <div className="pdim-bar" role="img" aria-label={`${d.left} ${Math.round(100 - d.value * 100)}% / ${d.right} ${Math.round(d.value * 100)}%`}><span style={{ left: `${Math.max(2, Math.min(98, d.value * 100))}%` }} /></div>
+            <ul className="small muted">{d.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
+          </div>
+        ))}
+      </div>
+      <div className="persona-grid">
+        <div>
+          <h4>Players you play like</h4>
+          <p><strong>{t.player}</strong> <span className="small muted">- the quiz's example of a {t.name}</span></p>
+          <p className="small">Learn from: {t.also.join(', ')}.</p>
+        </div>
+        <div>
+          <h4>Openings that suit a {t.name}</h4>
+          <p className="small">The quiz suggests: <strong>{t.openings.join(' and ')}</strong>.</p>
+          <p className="small">Courses here:</p>
+          <div className="persona-courses">{t.courses.filter((id) => COURSE_NAME[id]).map((id) => <button key={id} className="secondary slim" onClick={onOpenings}>{COURSE_NAME[id]}</button>)}</div>
+        </div>
+        <div>
+          <h4>Your best openings</h4>
+          <ol className="small persona-open">{p.openings.slice(0, 5).map((o) => <li key={o.name}>{o.name} <span className="muted">- {o.score}% in {o.n} games</span></li>)}</ol>
+          {fav.length > 0 && <p className="small">You picked the Vienna and Scandinavian: {fav.map((o) => `${o.name} ${o.score}% (${o.n} games)`).join(', ')}. Both are sharp, development-first openings that fit an attacking style.</p>}
+        </div>
+      </div>
+      <p className="small muted">
+        Closest other types: {p.matches.filter((m) => m.type !== t).slice(0, 3).map((m) => `${m.type.name} ${m.pct}%`).join(' · ')}. Measured from {p.n.toLocaleString()} games; types, players and opening picks follow Chess.com's <a href="https://www.chesspersonality.com/quiz" target="_blank" rel="noreferrer">ChessPersonality quiz</a> - take it to compare.
+      </p>
+    </div>
+  )
+}
+
 function Section({ id, title, sub, children }) {
   return (
     <section className="card insight" id={id ? `ins-${id}` : undefined}>
@@ -65,7 +117,7 @@ function GameList({ title, games, value, onReview }) {
   )
 }
 
-export default function InsightsView({ rows, records, progress, scopeLabel, onReview }) {
+export default function InsightsView({ rows, records, progress, scopeLabel, onReview, onOpenings }) {
   const ins = useMemo(() => (records ? aggregate(rows, records) : null), [rows, records])
   const tips = useMemo(() => (ins ? takeaways(ins) : null), [ins])
 
@@ -101,6 +153,10 @@ export default function InsightsView({ rows, records, progress, scopeLabel, onRe
         <Tile value={ins.avgOpp ? Math.round(ins.avgOpp) : '-'} label="avg opponent rating" sub="before the game" />
         <Tile value={`${ins.streaks.win} / ${ins.streaks.loss}`} label="longest win / loss streak" />
       </section>
+
+      <Section id="personality" title="Chess personality" sub="Which of the 16 ChessPersonality types your games point to - and who and what to study.">
+        <Personality p={ins.personality} onOpenings={onOpenings} />
+      </Section>
 
       {tips && (tips.good.length > 0 || tips.bad.length > 0) && (
         <div className="grid">

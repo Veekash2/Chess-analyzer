@@ -13,6 +13,7 @@ export const COMMON_NOTES = {
 
 import { MORE_COURSES } from './moreCourses'
 import { YOUR_COURSES } from './yourCourses'
+import { VIENNA_FULL, SCANDI_FULL } from './deepCourses'
 
 const L = (name, moves) => ({ name, moves: moves.split(' ') })
 
@@ -288,6 +289,12 @@ export const COURSES = [
 ]
 
 COURSES.push(...MORE_COURSES, ...YOUR_COURSES)
+// the full Vienna and Scandinavian courses replace the short versions (same id keeps your progress)
+for (const full of [VIENNA_FULL, SCANDI_FULL]) {
+  const i = COURSES.findIndex((c) => c.id === full.id)
+  if (i >= 0) COURSES[i] = full
+  else COURSES.push(full)
+}
 
 // ---- progress (which lines you have practised without mistakes), kept in this browser
 const KEY = 'smc-openings-v1'

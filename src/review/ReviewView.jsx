@@ -263,7 +263,65 @@ function PgnInput({ onLoad, rows, onPickRow }) {
 }
 
 /* ------------------------------------------------------------------ eval graph */
-function EvalGraph({ result, ply, onSeek }) {
+/**
+ * The moves that changed the game most: biggest swing in winning chances, seen from the
+ * reviewer's side. Returns up to `max` moments in game order.
+ */
+export function turningPoints(result, reviewer, max = 5) {
+  const wp = result.evals.map((e) => { const t = e.lines[0]; return winPct(t.mate != null ? { mate: t.mate } : { cp: t.cp }) })
+  const mine = (w) => Math.round(reviewer === 'w' ? w : 100 - w)
+  return result.moves
+    .map((m) => ({ m, before: mine(wp[m.ply - 1]), after: mine(wp[m.ply]) }))
+    .map((x) => ({ ...x, swing: x.after - x.before }))
+    .filter((x) => Math.abs(x.swing) >= 10 && !['book', 'forced'].includes(x.m.cls))
+    .sort((a, b) => Math.abs(b.swing) - Math.abs(a.swing))
+    .slice(0, max)
+    .sort((a, b) => a.m.ply - b.m.ply)
+    .map((x, i) => ({ ...x, n: i + 1 }))
+}
+
+/** One sentence per turning point - your moves get the better move; the opponent's only your reply. */
+function momentText({ m, before, after, swing }, result, reviewer) {
+  const label = CLASSES[m.cls].label.toLowerCase()
+  const chances = `${before}% → ${after}%`
+  if (m.color === reviewer) {
+    if (swing < 0) return `You played ${m.san} (${label}). Your winning chances fell ${chances}.${m.bestSan && m.bestSan !== m.san ? ` ${m.bestSan} was better.` : ''}`
+    return `${m.san} (${label}) - your winning chances rose ${chances}.`
+  }
+  if (swing > 0) {
+    const next = result.moves[m.ply]
+    const best = m.replyLine?.[0]
+    let you = ''
+    if (next && best) you = next.san === best ? ` You found the best reply, ${next.san} ✓` : ` You played ${next.san} - the best reply was ${best}.`
+    return `Your opponent's ${label} ${m.san} gave you a chance: ${chances}.${you}`
+  }
+  return `Your opponent's ${m.san} put you under pressure: ${chances}.`
+}
+
+function TurningPoints({ result, reviewer, onSeek }) {
+  const tps = turningPoints(result, reviewer)
+  if (!tps.length) return <p className="muted small">No big swings - a steady game from start to finish.</p>
+  return (
+    <ol className="turning-points">
+      {tps.map((x) => (
+        <li key={x.m.ply}>
+          <button className="tp" onClick={() => onSeek(x.m.ply)}>
+            <span className="tp-n">{x.n}</span>
+            <span className="tp-main">
+              <span className="tp-move"><ClassIcon cls={x.m.cls} size={18} /> <strong>{Math.ceil(x.m.ply / 2)}{x.m.color === 'w' ? '.' : '...'} {x.m.san}</strong>
+                <span className={`tp-swing ${x.swing >= 0 ? 'up' : 'down'}`}>{x.swing >= 0 ? '+' : ''}{x.swing}%</span>
+                <span className="muted small">{x.m.color === reviewer ? 'your move' : 'opponent'}</span>
+              </span>
+              <span className="small">{momentText(x, result, reviewer)}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function EvalGraph({ result, ply, onSeek, reviewer = 'w' }) {
   const [wrap, W] = useWidth(400)
   const H = 74
   const n = result.evals.length
@@ -285,6 +343,12 @@ function EvalGraph({ result, ply, onSeek }) {
         <line x1="0" x2={W} y1={H / 2} y2={H / 2} className="eg-mid" />
         {result.moves.map((m) => GRAPH_DOTS.has(m.cls) && (
           <circle key={m.ply} cx={pts[m.ply][0]} cy={pts[m.ply][1]} r="3.5" fill={CLASSES[m.cls].color} stroke="#111" strokeWidth="1" />
+        ))}
+        {turningPoints(result, reviewer).map((x) => (
+          <g key={`tp${x.m.ply}`} className="eg-tp">
+            <circle cx={pts[x.m.ply][0]} cy={Math.min(H - 8, Math.max(8, pts[x.m.ply][1]))} r="7" />
+            <text x={pts[x.m.ply][0]} y={Math.min(H - 8, Math.max(8, pts[x.m.ply][1])) + 3.5} textAnchor="middle">{x.n}</text>
+          </g>
         ))}
         <line x1={pts[ply][0]} x2={pts[ply][0]} y1="0" y2={H} className="eg-cursor" />
       </svg>
@@ -385,8 +449,8 @@ function PlayerBar({ p, extra }) {
 }
 
 /* ------------------------------------------------------------------ side panel */
-function Summary({ result, players, headers, pgn, puzzles, onOpenPuzzles, onStart, onSeek, retryCount, onRetryAll }) {
-  const { w, b, keyMoments } = result.summary
+function Summary({ result, players, headers, pgn, puzzles, onOpenPuzzles, onStart, onSeek, retryCount, onRetryAll, reviewer = 'w' }) {
+  const { w, b } = result.summary
   const res = players.result
   return (
     <div className="rv-summary">
@@ -405,6 +469,8 @@ function Summary({ result, players, headers, pgn, puzzles, onOpenPuzzles, onStar
       {retryCount > 0 && (
         <button className="secondary retry-all" onClick={onRetryAll}><IconRetry /> Retry your mistakes ({retryCount})</button>
       )}
+      <h4>Key moments - the moves that changed the game</h4>
+      <TurningPoints result={result} reviewer={reviewer} onSeek={onSeek} />
       <table className="count-table">
         <thead><tr><th /><th className="num">{players.w.name}</th><th /><th className="num">{players.b.name}</th></tr></thead>
         <tbody>
@@ -439,22 +505,6 @@ function Summary({ result, players, headers, pgn, puzzles, onOpenPuzzles, onStar
       </table>
       <p className="muted small phase-note">{phaseNote(result.moves)}</p>
       <GameReport result={result} players={players} headers={headers} pgn={pgn} onSeek={onSeek} puzzles={puzzles} onOpenPuzzles={onOpenPuzzles} />
-      {keyMoments.length > 0 && (
-        <>
-          <h4>Key moments</h4>
-          <ul className="key-moments">
-            {keyMoments.slice(0, 12).map((m) => (
-              <li key={m.ply}>
-                <button className="km" onClick={() => onSeek(m.ply)}>
-                  <ClassIcon cls={m.cls} size={18} />
-                  <span>{Math.ceil(m.ply / 2)}{m.color === 'w' ? '.' : '...'} {m.san}</span>
-                  <span className="muted small">{CLASSES[m.cls].label}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
       <p className="muted small">Accuracy and labels are this app's own approximation of Chess.com's system (their exact formula isn't public), so expect differences of a few points.</p>
     </div>
   )
@@ -965,7 +1015,7 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
                 onExit={() => { setRetry(null) }} />
             ) : ply === 0 || !mv ? (
               <Summary result={result} players={players} headers={game.headers} pgn={game.pgn} puzzles={puzzles} onOpenPuzzles={onOpenPuzzles} onStart={() => seek(1)} onSeek={seek}
-                retryCount={retryList.length} onRetryAll={() => startRetry(retryList[0], retryList.slice(1))} />
+                retryCount={retryList.length} onRetryAll={() => startRetry(retryList[0], retryList.slice(1))} reviewer={reviewer} />
             ) : (
               <>
                 <Coach mv={mv} showBest={showBest} setShowBest={setShowBest} onNext={() => seek(ply + 1)}
@@ -976,7 +1026,7 @@ export default function ReviewView({ initialPgn, username, rows, puzzles, onOpen
                 <button className="link-btn" onClick={() => seek(0)}>← Back to summary</button>
               </>
             )}
-            <EvalGraph result={result} ply={ply} onSeek={seek} />
+            <EvalGraph result={result} ply={ply} onSeek={seek} reviewer={reviewer} />
           </div>
         </div>
       )}
