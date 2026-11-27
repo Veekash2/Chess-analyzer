@@ -945,3 +945,35 @@ p.storage-warn { display: block; padding: 6px 10px; margin: 0; }
 .coach-bubble.speech p { margin: 0 0 6px; line-height: 1.45; }
 .coach-bubble.speech p:last-child { margin-bottom: 0; }
 .verdict-link { text-align: left; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+
+/* ---- scout */
+.scout { display: grid; gap: 16px; }
+.scout .card { margin: 0; }
+.scout-form { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.scout-form input { flex: 1 1 200px; min-width: 0; }
+.scout-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.scout-chips .chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; font-size: .85rem; }
+.scout-loading { margin-top: 10px; }
+.scout-head { display: flex; gap: 14px; align-items: center; }
+.scout-head img { border-radius: 10px; }
+.scout-head h3 { margin: 0 0 4px; }
+.scout-head p { margin: 2px 0; }
+.scout-problems { display: grid; gap: 14px; margin-top: 10px; }
+.scout-problem { display: grid; grid-template-columns: 210px 1fr; gap: 14px; align-items: start; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
+@media (max-width: 520px) { .scout-problem { grid-template-columns: 1fr; justify-items: center; } }
+.scout-problem-text { display: grid; gap: 6px; align-content: start; }
+.scout-problem-text .slim { justify-self: start; padding: 6px 12px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.scout-weak { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.scout-weak li { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.scout-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.scout-cols h4 { margin: 0 0 6px; }
+.scout-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.scout-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.scout-table .num { text-align: right; white-space: nowrap; }
+.scout-table .bad { color: #d63a3a; font-weight: 700; }
+.scout-table .good { color: #7fae3c; font-weight: 700; }
+.scout-bar { display: block; width: 70px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.scout-bar span { display: block; height: 100%; background: #8f9e7c; }
+.scout-bar.bad span { background: #d63a3a; }
+.scout-bar.good span { background: #7fae3c; }
