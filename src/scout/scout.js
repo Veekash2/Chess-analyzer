@@ -6,7 +6,12 @@ import { sanMoves } from '../openings/bookLeaks'
 const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null)
 const pts = (r) => (r.outcome === 'win' ? 1 : r.outcome === 'draw' ? 0.5 : 0)
 const score = (list) => (list.length ? Math.round((100 * list.reduce((a, r) => a + pts(r), 0)) / list.length) : null)
-export const family = (name) => (name || 'Unknown').split(/ (Defense|Defence|Opening|Game|Attack|Gambit|System|Variation)\b/)[0].trim()
+/** "Queens Gambit Declined Orthodox..." -> "Queens Gambit": everything up to and including the opening's type word. */
+export const family = (name) => {
+  const n = (name || 'Unknown').trim()
+  const m = n.match(/^(.*?\b(?:Defense|Defence|Opening|Game|Attack|Gambit|Countergambit|System))\b/)
+  return m ? m[1] : n.split(' ').slice(0, 3).join(' ')
+}
 
 /** Which of our courses prepares you against an opening they play (side = the side THEY play). */
 const COURSE_FOR = {
@@ -61,7 +66,7 @@ export function scout(rows, me) {
   const overall = score(games) ?? 50
   const cands = [...nodes.values()]
     .map((e) => ({ ...e, n: e.list.length, score: score(e.list) }))
-    .filter((e) => e.n >= 5 && e.score <= Math.min(42, overall - 8))
+    .filter((e) => e.n >= (games.length < 300 ? 4 : 5) && e.score <= Math.min(42, overall - 8))
     .map((e) => ({ ...e, weight: e.n * (overall - e.score) }))
     .sort((a, b) => b.weight - a.weight)
   const problems = []

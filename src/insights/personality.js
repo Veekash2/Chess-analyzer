@@ -49,7 +49,12 @@ const OFFBEAT = /Bongcloud|Stafford|Englund|Grob|Elephant|Latvian|Damiano|Owen|N
 const clamp = (x) => Math.max(0, Math.min(1, x))
 const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null)
 const pct = (x) => `${Math.round(100 * x)}%`
-const family = (name) => (name || 'Unknown').split(/ (Defense|Defence|Opening|Game|Attack|Gambit|System)\b/)[0].trim()
+/** "Queens Gambit Declined Orthodox..." -> "Queens Gambit": up to and including the opening's type word. */
+const family = (name) => {
+  const n = (name || 'Unknown').trim()
+  const m = n.match(/^(.*?\b(?:Defense|Defence|Opening|Game|Attack|Gambit|Countergambit|System))\b/)
+  return m ? m[1] : n.split(' ').slice(0, 3).join(' ')
+}
 
 /**
  * rows: sorted oldest->newest, each with { opening, outcome, how, timeClass, end, rec }.
